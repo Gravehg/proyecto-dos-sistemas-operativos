@@ -66,11 +66,11 @@ class MMUFIFO():
             self.pointer_page_map[self.pointer_id_generator] = []
         return new_pointer
     
-    def replace_page(self):
+    def replace_page(self,page):
         if not self.fifo_queue.empty():
             page = self.fifo_queue.get()
             page.set_in_ram()
-            return page.
+            return page
 
     #You can use this to debug
     def print_map(self):
