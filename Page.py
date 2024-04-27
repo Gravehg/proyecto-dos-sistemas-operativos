@@ -11,4 +11,4 @@ class Page():
         return self.segment
 
     def print_page(self):
-        print(self.id, self.segment)
+        print(self.id, self.segment, self.in_ram)
