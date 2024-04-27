@@ -46,6 +46,3 @@ class FileProcessor:
                 parameters = parameters[0].strip(')').split(',')
                 self.process_instruction(instruction, parameters)
 
-# Example usage:
-processor = InstructionProcessor()
-processor.process_file("instructions.txt")  # Assuming instructions are stored in "instructions.txt"
