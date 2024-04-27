@@ -43,6 +43,9 @@ class MMUFIFO():
     def process_delete_command(self,pointer_id):
         process = get_process_by_pointer(pointer_id)
 
+    def process_kill_command(self,pid):
+        return
+
     
     def get_process_by_pointer(self, pointer_id):
         for proc in self.process:
