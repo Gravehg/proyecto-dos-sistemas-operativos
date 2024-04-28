@@ -56,6 +56,7 @@ class MMUFIFO():
                         page.set_segment(self.replace_page())
                     else:
                         page.set_segment(frame_address)
+                        self.current_memory_usage += self.PAGE_SIZE
                     page.set_in_ram()
                     self.fifo_queue.append(page)
         else:
@@ -127,6 +128,7 @@ class MMUFIFO():
 
     #You can use this to debug
     def print_map(self):
+        print("Map")
         for l in self.pointer_page_map.values():
             for val in l:
                 val.print_page()
@@ -140,8 +142,14 @@ class MMUFIFO():
 
 
     def print_queue(self):
+        print("Queue")
         for i in self.fifo_queue:
             i.print_page()
 
     def print_available_addresses(self):
+        print("Available addresses")
         print(self.available_addresses)
+
+    def print_memory_ussage(self):
+        print("Memory usage")
+        print(self.current_memory_usage)
