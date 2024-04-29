@@ -9,7 +9,7 @@ class MMUFIFO():
     def __init__(self):
         #This is in kb
         #It should be 400, 40 for testing purposes
-        self.RAM = 40
+        self.RAM = 400
         self.PAGE_SIZE  = 4
         self.FRAME_NUM = self.RAM // 4
         self.available_addresses = [i * self.PAGE_SIZE for i in range(self.FRAME_NUM)]
