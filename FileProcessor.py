@@ -1,7 +1,7 @@
 class FileProcessor:
     def __init__(self):
         # Initialize any necessary attributes
-        pass
+        self.instruction_list = []
 
     def process_instruction(self, instruction, parameters):
         # Perform different actions based on the instruction and parameters
@@ -38,11 +38,16 @@ class FileProcessor:
 
     # Add more methods to handle other instructions
 
-    def process_file(self, file_path):
+    def read_file_instructions(self, file_path):
         # Read the file line by line and process each instruction
         with open(file_path, 'r') as file:
             for line in file:
-                instruction, *parameters = line.strip().split('(')
-                parameters = parameters[0].strip(')').split(',')
-                self.process_instruction(instruction, parameters)
+                self.instruction_list.append(line)
+
+    def process_instruction(self):
+        line = self.instruction_list.pop(0)
+        instruction, *parameters = line.strip().split('(')
+        parameters = parameters[0].strip(')').split(',')
+        self.process_instruction(instruction, parameters)
+
 
