@@ -1,5 +1,6 @@
 import tkinter as tk
 import customtkinter
+from FileProcessor import FileProcessor
 from tkinter.filedialog import askopenfile
 
 
@@ -107,6 +108,7 @@ fragmentacion_alg.set("-")
 class main_proyect():
     
     def __init__(self, window):
+        self.file_processor = None
         global name_file
         global name_algorithm
         global name_mmu
@@ -137,14 +139,36 @@ class main_proyect():
         
         def upload_file():
             archivo = askopenfile(mode="r", filetypes=[('Archivos de texto', '*.txt')])
-            
             if archivo is not None:
-                contenido = archivo.read()
+                self.file_processor = FileProcessor(archivo.name, configure_algorithm_combo.get())
                 name_file.set(archivo.name)
             else:
                 print("Error")
             
         def execute_program():
+            #Un tipo wait o algo asi antes de ejecutar la siguiente instruction
+            #While len(self.file_processor.instruction) > 0
+            # self,file_processor.processes_instruction()
+            # wait(algunos_segundos)
+            self.file_processor.process_instruction()
+            #Sacar las estadisticas la as MMU
+            self.file_processor.process_instruction()
+            self.file_processor.process_instruction()
+            self.file_processor.process_instruction()
+            self.file_processor.process_instruction()
+            self.file_processor.process_instruction()
+            self.file_processor.process_instruction()
+            self.file_processor.process_instruction()
+            self.file_processor.process_instruction()
+            self.file_processor.process_instruction()
+            self.file_processor.process_instruction()
+            self.file_processor.process_instruction()
+            self.file_processor.process_instruction()
+            self.file_processor.process_instruction()
+            self.file_processor.process_instruction()
+            self.file_processor.process_instruction()
+            self.file_processor.process_instruction()
+            print(self.file_processor.selected_mmu.get_total_time())
             print("Ejecutando...")
             name_algorithm.set("RAM - " + configure_algorithm_combo.get())
             name_mmu.set("MMU - " + configure_algorithm_combo.get())

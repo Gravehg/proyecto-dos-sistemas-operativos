@@ -3,6 +3,7 @@ class Page():
         self.id = page_id
         self.segment = segment
         self.in_ram = True
+        self.bit = False
     
     def set_in_ram(self):
         self.in_ram = not self.in_ram
@@ -21,3 +22,6 @@ class Page():
 
     def print_page(self):
         print(self.id, self.segment, self.in_ram)
+
+    def set_bit(self):
+        self.bit = not self.bit

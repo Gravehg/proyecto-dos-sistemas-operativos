@@ -1,19 +1,30 @@
 from Process import Process  
 from Pointer import Pointer  
 from Page import Page  
-from queue import Queue  
+#from queue import Queue  
 import math  
 
 class MMUSecondChance():
     def __init__(self):
         self.RAM = 400  # Tamaño de la RAM en KB
         self.PAGE_SIZE = 4  # Tamaño de página en KB
-        self.current_memory = 0  # Memoria actualmente en uso
+        self.FRAME_NUM = self.RAM // 4
+        self.available_addresses = [i * self.PAGE_SIZE for i in range(self.FRAME_NUM)]
+        self.current_memory_usage = 0  # Memoria actualmente en uso
         self.pointer_id_generator = 0  # Generador de IDs para punteros
         self.page_id_generator = 0  # Generador de IDs para páginas
         self.pointer_page_map = {}  # Mapa que relaciona punteros con páginas
         self.processes = []  # Lista de procesos
-        self.second_chance_queue = Queue()  # Cola para el algoritmo de segunda oportunidad
+        self.second_chance_queue = []  # Cola para el algoritmo de segunda oportunidad
+        #Used to track overall time
+        self.clock = 0
+        #Used to track paging trashing time
+        self.paging_clock = 0
+
+    def allocate_page(self):
+        if not self.available_addresses:
+            return None  # No available pages left
+        return self.available_addresses.pop(0)
 
     # Método para procesar el comando 'new' y asignar memoria a un proceso nuevo
     def process_new_command(self, pid, size):
@@ -22,72 +33,172 @@ class MMUSecondChance():
         process = self.get_process(pid)  # Obtener el proceso existente o crear uno nuevo
         new_pointer = self.create_pointer()  # Crear un nuevo puntero para el proceso
         process.add_pointer(new_pointer)  # Agregar el puntero al proceso
-        for i in range(num_pages):
-            # Crear y asignar páginas al puntero del proceso
-            memory_required = 4  # Tamaño de memoria requerido por la página
-            if self.current_memory + memory_required > self.RAM:
-                self.replace_page()  # Reemplazar una página si la memoria está llena
-            self.page_id_generator += 1  # Generar un nuevo ID de página
-            new_page = Page(self.page_id_generator)  # Crear una nueva página
-            new_pointer.add_page(new_page)  # Agregar la página al puntero
-            self.second_chance_queue.put(new_page)  # Agregar la página a la cola de segunda oportunidad
+        for _ in range(num_pages):
+            self.page_id_generator += 1
+            frame_address = self.allocate_page()
+            if frame_address is None:
+                memory_segment = self.replace_page()
+                #Por default el bit es cero entonces todo bien
+                new_page = Page(memory_segment,self.page_id_generator)
+                #Aumentar el contador del reloj por 5 segundos por el miss
+                self.clock += 5
+                self.paging_clock += 5
+            else:
+                self.current_memory_usage += self.PAGE_SIZE
+                new_page = Page(frame_address,self.page_id_generator)
+                #Aumentar el contador del reloj por 1 segundo ya que si había memoria disponible
+                self.clock += 1
+            self.pointer_page_map[self.pointer_id_generator].append(new_page)
+            self.second_chance_queue.append(new_page)
 
     def process_use_command(self, pointer_id):
-        # Método para procesar el comando 'use' y permitir que un proceso use un puntero
-        process = self.get_process_by_pointer(pointer_id)  # Obtener el proceso que posee el puntero
-        pointer = process.get_pointer(pointer_id)  # Obtener el puntero del proceso
-        if pointer:
-            # Realizar acciones adicionales según sea necesario
-            print(f"El proceso {process.get_process_id()} está usando el puntero {pointer_id}.")
-        else:
-            print("El puntero especificado no existe en la tabla de símbolos del proceso.")
+        if not self.is_pointer_in_map(pointer_id):
+            raise Exception("Couldn't find pointer")
+        pages = self.pointer_page_map[pointer_id]
+        #Setear el bit en ambos casos, porque se hace la referencia tanto si esta como si no esta en RAM
+        for page in pages:
+            if not page.in_ram:
+                frame_address = self.allocate_page()
+                if frame_address is None:
+                    page.set_segment(self.replace_page())
+                else:
+                    page.set_segment(frame_address)
+                    self.current_memory_usage += self.PAGE_SIZE
+                page.set_in_ram()
+                page.set_bit()
+                self.second_chance_queue.append(page)
+                #Aumentar el contador en 5s porque no estaba en ram
+                self.clock += 5
+                self.paging_clock += 5
+            else:
+                page.set_bit()
+                #Aumentar el reloj en 1s porque si estaba en ram
+                self.clock += 1
 
     def process_delete_command(self, pointer_id):
-        # Método para procesar el comando 'delete' y eliminar un puntero de un proceso
-        process = self.get_process_by_pointer(pointer_id)  # Obtener el proceso que posee el puntero
-        pointer = process.get_pointer(pointer_id)  # Obtener el puntero del proceso
-        if pointer:
-            # Eliminar el puntero del proceso
-            process.remove_pointer(pointer_id)
-            # Liberar la memoria asociada al puntero eliminado
-            for page in pointer.get_pages():
-                self.release_page(page)
-            print(f"El puntero {pointer_id} ha sido eliminado del proceso {process.get_process_id()}.")
+        if self.is_pointer_in_map(pointer_id):
+            pages = self.pointer_page_map[pointer_id]
+            for page in pages:
+                self.delete_pages_from_queue(page)
+            del self.pointer_page_map[pointer_id]
         else:
-            print("El puntero especificado no existe en la tabla de símbolos del proceso.")
+            raise Exception("Couldn't find pointer")
+        
+    def process_kill_command(self,pid):
+        process = self.get_process_by_pid(pid)
+        self.processes.remove(process)
+        pointers = process.get_pointers()
+        for pointer in pointers:
+            self.process_delete_command(pointer.get_pointer_id())
+
+    def is_pointer_in_map(self,pointer_id):
+        return pointer_id in self.pointer_page_map
+    
+    def get_process_by_pid(self,pid):
+        for proc in self.processes:
+            if proc.get_process_id() == pid:
+                return proc
+        raise Exception("Couldn't find process")
+
+    #no se si hay que usar esto, porque la cosa es que si borro estas paginas directamente
+    #Entonces se me van a borrar ciertos segmentos de memoria y se van a perder las direcciones
+    def delete_pages_from_queue(self,page):
+        for i in self.second_chance_queue:
+            if i.get_page_id() == page.get_page_id():
+                self.available_addresses.append(page.get_segment())
+                self.second_chance_queue.remove(i)
+                self.current_memory_usage -= self.PAGE_SIZE
+
+    
+    def get_process_by_pointer(self, pointer_id):
+        for proc in self.processes:
+            if proc.is_pointer_process(pointer_id):
+                return proc
+        raise Exception("Coudln't find pointer")
+    
+    def get_process(self, id):
+        for proc in self.processes:
+            if proc.get_process_id() == id:
+                return proc
+        process = Process(id)
+        self.processes.append(process)
+        return process
+    
+    def create_pointer(self):
+        self.pointer_id_generator += 1
+        new_pointer_id = self.pointer_id_generator 
+        new_pointer = Pointer(new_pointer_id)
+        if self.pointer_id_generator not in self.pointer_page_map:
+            self.pointer_page_map[self.pointer_id_generator] = []
+        return new_pointer
 
 
     def replace_page(self):
-        # Método para reemplazar una página en la RAM utilizando el algoritmo de segunda oportunidad
-        while not self.second_chance_queue.empty():
-            page = self.second_chance_queue.get()  # Obtener una página de la cola
-            if page.has_reference():
-                # Dar a la página una segunda oportunidad si tiene referencia
-                page.clear_reference()
-                self.second_chance_queue.put(page)  # Devolver la página a la cola
+        replaced = False
+        p = None
+        while(not replaced):
+            if self.second_chance_queue[0].bit:
+                p = self.second_chance_queue.pop(0)
+                p.set_bit()
+                self.second_chance_queue.append(p)
             else:
-                # Reemplazar la página si no tiene referencia
-                page_id_to_remove = page.get_page_id()  # Obtener el ID de la página a eliminar
-                for pointer_id, pages in self.pointer_page_map.items():
-                    for p in pages:
-                        if p.get_page_id() == page_id_to_remove:
-                            # Eliminar la página del mapa de punteros y actualizar la memoria
-                            self.pointer_page_map[pointer_id].remove(p)
-                            self.current_memory -= self.PAGE_SIZE
-                            break
-                page.set_in_ram()  # Marcar la nueva página como en la RAM
-                return  # Salir del bucle después de reemplazar una página
-
-
-
-
+                p = self.second_chance_queue.pop(0)
+                replaced = True
+        return p.get_segment()
+              
+    #You can use this to debug
     def print_map(self):
-        for pages in self.pointer_page_map.values():
-            for page in pages:
-                page.print_page()
+        print("Map")
+        for l in self.pointer_page_map.values():
+            for val in l:
+                val.print_page()
 
+    #Print process pointers
     def print_processes_pointers(self):
         for proc in self.processes:
-            print("Process ID is:", proc.get_process_id())
+            print("Process ID is: ",proc.get_process_id())
             proc.print_pointers()
             print("-------------------------------------")
+
+
+    def print_queue(self):
+        print("Queue")
+        for i in self.second_chance_queue_queue:
+            i.print_page()
+
+    def print_available_addresses(self):
+        print("Available addresses")
+        print(self.available_addresses)
+
+    def print_memory_ussage(self):
+        print("Memory usage")
+        print(self.current_memory_usage)
+
+    def get_ram_in_kb(self):
+        return self.RAM - len(self.available_addresses)*self.PAGE_SIZE
+    
+    def get_ram_in_percentage(self):
+        return (self.get_ram_in_kb()/self.RAM) * 100
+    
+    def get_vram_in_kb(self):
+        vram_kb = 0
+        for pointer in self.pointer_page_map:
+            pages_in_vram = [x for x in self.pointer_page_map[pointer] if not x.in_ram]
+            vram_kb += len(pages_in_vram) * self.PAGE_SIZE
+        return vram_kb
+    
+    def get_vram_in_percentage(self):
+        return ((self.get_vram_in_kb()+self.get_ram_in_kb())/self.RAM) * 100
+    
+
+    def get_trashing_time(self):
+        return self.paging_clock
+    
+    def get_trashing_time_percentage(self):
+        return (self.paging_clock / self.clock) * 100
+    
+    def get_fragmentation(self):
+        return len(self.available_addresses) * self.PAGE_SIZE
+    
+    def get_total_time(self):
+        return self.clock

@@ -1,18 +1,46 @@
-class FileProcessor:
-    def __init__(self):
-        # Initialize any necessary attributes
-        self.instruction_list = []
+from MMUFIFO import MMUFIFO
+from MMUSC import MMUSecondChance
+from MMUNRD import MMURND
+from MMUMRU import MMUMRU
+from MMUOptimal import MMUOptimal
 
-    def process_instruction(self, instruction, parameters):
+class FileProcessor:
+    def __init__(self, file_path, name_algorithm):
+        # Initialize any necessary attributes
+        self.selected_mmu = None
+        print(name_algorithm)
+        if name_algorithm == "FIFO":
+            self.selected_mmu = MMUFIFO()
+        elif name_algorithm == "SC":
+            self.selected_mmu = MMUSecondChance()
+        elif name_algorithm == "RND":
+            self.selected_mmu = MMURND()
+        elif name_algorithm == "MRU":
+            self.selected_mmu = MMUMRU()
+        self.optimal_mmu = MMUOptimal()
+        self.instruction_list = []
+        self.path = file_path
+        self.read_file_instructions(self.path)
+
+    #Deberia llamarse cada cierto tiempo para que ejecute la instruccion siguiente y se actualice la interfaz
+    def process_instruction_mmu(self, instruction, parameters):
         # Perform different actions based on the instruction and parameters
         if instruction == "new":
-            self.handle_new_instruction(parameters)
+            pid, size = parameters
+            self.optimal_mmu.process_new_command(int(pid), int(size))
+            self.selected_mmu.process_new_command(int(pid), int(size))
         elif instruction == "use":
-            self.handle_use_instruction(parameters)
+            pointer_id = parameters[0]
+            self.optimal_mmu.process_use_command(int(pointer_id))
+            self.selected_mmu.process_use_command(int(pointer_id))
         elif instruction == "delete":
-            self.handle_delete_instruction(parameters)
+            pointer_id = parameters[0]
+            self.optimal_mmu.process_delete_command(int(pointer_id))
+            self.selected_mmu.process_delete_command(int(pointer_id))   
         elif instruction == "kill":
-            self.handle_kill_instruction(parameters)
+            pid = parameters[0]
+            self.optimal_mmu.process_kill_command(int(pid))
+            self.selected_mmu.process_kill_command(int(pid))
         # Add more conditions for other instructions as needed
 
     def handle_new_instruction(self, parameters):
@@ -48,6 +76,6 @@ class FileProcessor:
         line = self.instruction_list.pop(0)
         instruction, *parameters = line.strip().split('(')
         parameters = parameters[0].strip(')').split(',')
-        self.process_instruction(instruction, parameters)
+        self.process_instruction_mmu(instruction, parameters)
 
 
