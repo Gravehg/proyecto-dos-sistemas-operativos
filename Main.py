@@ -5,10 +5,11 @@
 #root.mainloop()
 from MMUFIFO import MMUFIFO
 from FileProcessor import FileProcessor
+from FileGenerator import FileGenerator
 
 new_mmu = MMUFIFO()
-new_file_processor = FileProcessor()
-new_file_processor.read_file_instructions('test.txt')
+#new_file_processor = FileProcessor("ask","pbt")
+#new_file_processor.read_file_instructions('test.txt')
 #new_mmu.print_something()
 new_mmu.print_available_addresses()
 new_mmu.process_new_command(1,40000)
@@ -64,3 +65,5 @@ print(new_mmu.get_vram_in_percentage())
 print(new_mmu.clock)
 print(new_mmu.get_trashing_time())
 print(new_mmu.get_trashing_time_percentage())
+new_file_generator = FileGenerator(10,500,32)
+new_file_generator.generate_file()
