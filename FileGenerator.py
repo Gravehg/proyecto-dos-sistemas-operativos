@@ -16,17 +16,21 @@ class FileGenerator():
         for process in self.active_processes_array:
             self.process_pointer_map[process] = []
         self.active_pointers_array = []
+        #Para que la vara mate cierta cantidad de instrucciones, el 40% es arbitrario
+        self.allowed_kill_instructions = int(self.num_processes* 0.4)
         self.instructions = ["new","use","delete","kill"]
         self.pointers = 1
 
     def generate_file(self):
       with open("generated.txt", 'w') as file:
-        for _ in range(0,self.num_operations):
+        i = 0
+        instruction_counter = self.num_operations - (self.num_processes - self.allowed_kill_instructions)
+        while(i < instruction_counter):
             instruction = random.choice(self.instructions)
             if instruction == "new" and self.active_processes_array:
                 #Chooses a process that hasnt been killed
                 process = random.choice(self.active_processes_array)
-                print("selected process new: ", process)
+                #print("selected process new: ", process)
                 size = random.randint(10000,40000)
                 file.write(f"new({process},{size})\n")                  
                 self.process_pointer_map[process].append(self.pointers)
@@ -34,24 +38,29 @@ class FileGenerator():
                     self.can_be_killed.append(process)
                 self.active_pointers_array.append(self.pointers)
                 self.pointers += 1
+                i += 1
             elif instruction == "use" and self.active_pointers_array:
                 pointer = random.choice(self.active_pointers_array)
                 file.write(f"use({pointer})\n")
+                i += 1
             elif instruction == "delete" and self.active_pointers_array:
                 pointer = random.choice(self.active_pointers_array)
                 self.active_pointers_array.remove(pointer)
                 file.write(f"delete({pointer})\n")
+                i += 1
             elif instruction == "kill" and self.can_be_killed:
-                process = random.choice(self.can_be_killed)
-                print("Killing process: ", process)
-                pointer_list = self.process_pointer_map[process]
-                self.active_processes_array.remove(process)
-                self.can_be_killed.remove(process)
-                for pointer in pointer_list:
-                    if pointer in self.active_pointers_array:
-                        self.active_pointers_array.remove(pointer)
-                del self.process_pointer_map[process]
-                file.write(f"kill({process})\n")
+                if self.allowed_kill_instructions > 0:
+                    self.allowed_kill_instructions -= 1
+                    process = random.choice(self.can_be_killed)
+                    pointer_list = self.process_pointer_map[process]
+                    self.active_processes_array.remove(process)
+                    self.can_be_killed.remove(process)
+                    for pointer in pointer_list:
+                        if pointer in self.active_pointers_array:
+                            self.active_pointers_array.remove(pointer)
+                    del self.process_pointer_map[process]
+                    file.write(f"kill({process})\n")
+                    i += 1
         while self.can_be_killed:
             file.write(f"kill({self.can_be_killed.pop(0)})\n")       
         return file
