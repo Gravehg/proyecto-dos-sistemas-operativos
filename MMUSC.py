@@ -81,15 +81,17 @@ class MMUSecondChance():
             for page in pages:
                 self.delete_pages_from_queue(page)
             del self.pointer_page_map[pointer_id]
+            process = self.get_process_by_pointer(pointer_id)
+            process.delete_pointer(pointer_id)
         else:
             raise Exception("Couldn't find pointer")
         
     def process_kill_command(self,pid):
         process = self.get_process_by_pid(pid)
-        self.processes.remove(process)
         pointers = process.get_pointers()
         for pointer in pointers:
             self.process_delete_command(pointer.get_pointer_id())
+        self.processes.remove(process)
 
     def is_pointer_in_map(self,pointer_id):
         return pointer_id in self.pointer_page_map

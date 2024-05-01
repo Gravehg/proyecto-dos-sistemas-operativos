@@ -57,7 +57,7 @@ class MMUFIFO():
     
     def process_use_command(self, pointer_id):
         if not self.is_pointer_in_map(pointer_id):
-            raise Exception("Couldn't find pointer")
+            raise Exception("Couldn't find pointer when using",pointer_id)
         pages = self.pointer_page_map[pointer_id]
         for page in pages:
             if not page.in_ram:
@@ -83,15 +83,17 @@ class MMUFIFO():
             for page in pages:
                 self.delete_pages_from_queue(page)
             del self.pointer_page_map[pointer_id]
+            process = self.get_process_by_pointer(pointer_id)
+            process.delete_pointer(pointer_id)
         else:
-            raise Exception("Couldn't find pointer")
+            raise Exception("Couldn't find pointer when deleting", pointer_id)
 
     def process_kill_command(self,pid):
         process = self.get_process_by_pid(pid)
-        self.processes.remove(process)
         pointers = process.get_pointers()
         for pointer in pointers:
             self.process_delete_command(pointer.get_pointer_id())
+        self.processes.remove(process)
 
     def is_pointer_in_map(self,pointer_id):
         return pointer_id in self.pointer_page_map
@@ -116,7 +118,7 @@ class MMUFIFO():
         for proc in self.processes:
             if proc.is_pointer_process(pointer_id):
                 return proc
-        raise Exception("Coudln't find pointer")
+        raise Exception("Coudln't find pointer when getting process by pointer", pointer_id)
     
     def get_process(self, id):
         for proc in self.processes:
@@ -143,8 +145,9 @@ class MMUFIFO():
     #You can use this to debug
     def print_map(self):
         print("Map")
-        for l in self.pointer_page_map.values():
-            for val in l:
+        for k, v in self.pointer_page_map.items():
+            print("Pointer key: ", k)
+            for val in v:
                 val.print_page()
 
     #Print process pointers

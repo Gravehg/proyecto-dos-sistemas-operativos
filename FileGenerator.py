@@ -19,10 +19,11 @@ class FileGenerator():
         #Para que la vara mate cierta cantidad de instrucciones, el 40% es arbitrario
         self.allowed_kill_instructions = int(self.num_processes* 0.4)
         self.instructions = ["new","use","delete","kill"]
-        self.pointers = 1
+        self.pointers = 0
+        self.file_name = "generated.txt"
 
     def generate_file(self):
-      with open("generated.txt", 'w') as file:
+      with open(self.file_name, 'w') as file:
         i = 0
         instruction_counter = self.num_operations - (self.num_processes - self.allowed_kill_instructions)
         while(i < instruction_counter):
@@ -33,11 +34,11 @@ class FileGenerator():
                 #print("selected process new: ", process)
                 size = random.randint(10000,40000)
                 file.write(f"new({process},{size})\n")                  
-                self.process_pointer_map[process].append(self.pointers)
                 if not process in self.can_be_killed:
                     self.can_be_killed.append(process)
-                self.active_pointers_array.append(self.pointers)
                 self.pointers += 1
+                self.active_pointers_array.append(self.pointers)
+                self.process_pointer_map[process].append(self.pointers)
                 i += 1
             elif instruction == "use" and self.active_pointers_array:
                 pointer = random.choice(self.active_pointers_array)

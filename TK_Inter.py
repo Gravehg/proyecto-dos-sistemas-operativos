@@ -1,6 +1,7 @@
 import tkinter as tk
 import customtkinter
 from FileProcessor import FileProcessor
+from FileGenerator import FileGenerator
 from tkinter.filedialog import askopenfile
 
 
@@ -109,6 +110,8 @@ class main_proyect():
     
     def __init__(self, window):
         self.file_processor = None
+        self.file_generator = None
+        self.selected_file = None
         global name_file
         global name_algorithm
         global name_mmu
@@ -138,14 +141,22 @@ class main_proyect():
         global fragmentacion_alg
         
         def upload_file():
-            archivo = askopenfile(mode="r", filetypes=[('Archivos de texto', '*.txt')])
-            if archivo is not None:
-                self.file_processor = FileProcessor(archivo.name, configure_algorithm_combo.get())
-                name_file.set(archivo.name)
-            else:
-                print("Error")
+            self.selected_file = askopenfile(mode="r", filetypes=[('Archivos de texto', '*.txt')])
             
         def execute_program():
+            if self.selected_file is not None:
+                self.file_processor = FileProcessor(self.selected_file.name, configure_algorithm_combo.get())
+                name_file.set(self.selected_file.name)
+            else:
+                seed = None
+                if not configure_seed_entry.get():
+                    seed = 1000
+                else:
+                    seed = int(configure_seed_entry.get())
+                self.file_generator = FileGenerator(int(configure_process_combo.get()),int(configure_operations_combo.get()),seed)
+                self.file_generator.generate_file()
+                self.file_processor = FileProcessor(self.file_generator.file_name, configure_algorithm_combo.get())
+
             #Un tipo wait o algo asi antes de ejecutar la siguiente instruction
             #While len(self.file_processor.instruction) > 0
             # self,file_processor.processes_instruction()
