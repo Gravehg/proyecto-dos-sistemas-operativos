@@ -72,6 +72,13 @@ class FileProcessor:
             for line in file:
                 self.instruction_list.append(line)
 
+    def feed_opt_references(self):
+        for line in self.instruction_list:
+            instruction, *parameters = line.strip().split('(')
+            parameters = parameters[0].strip(')').split(',')
+            if instruction == "use":
+                self.optimal_mmu.pointer_references.append(int(parameters[0]))
+
     def process_instruction(self):
         line = self.instruction_list.pop(0)
         instruction, *parameters = line.strip().split('(')

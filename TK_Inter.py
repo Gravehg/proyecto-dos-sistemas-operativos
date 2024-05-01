@@ -156,6 +156,9 @@ class main_proyect():
                 self.file_generator = FileGenerator(int(configure_process_combo.get()),int(configure_operations_combo.get()),seed)
                 self.file_generator.generate_file()
                 self.file_processor = FileProcessor(self.file_generator.file_name, configure_algorithm_combo.get())
+                #Feeds page references to optimal MMU
+                self.file_processor.feed_opt_references()
+                print(self.file_processor.optimal_mmu.page_references)
 
             #Un tipo wait o algo asi antes de ejecutar la siguiente instruction
             #While len(self.file_processor.instruction) > 0
