@@ -47,7 +47,9 @@ class MMUOptimal():
             self.clock += 5*need_to_replace_number
             self.paging_clock += 5*need_to_replace_number
             #Increments the clock by 1 second for each page that did not need to be replaced
-            self.clock += 1*no_need_to_replace_number                 
+            self.clock += 1*no_need_to_replace_number
+        else:
+            self.clock += 1*num_pages                 
         for _ in range(0,num_pages):
             self.page_id_generator += 1
             frame_address = self.allocate_page()
