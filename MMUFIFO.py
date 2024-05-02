@@ -112,7 +112,7 @@ class MMUFIFO():
         for i in self.fifo_queue:
             if i.get_page_id() == page.get_page_id():
                 self.available_addresses.append(page.get_segment())
-                self.fifo_queue.remove(i)
+                self.fifo_queue.remove(page)
                 self.current_memory_usage -= self.PAGE_SIZE
 
     

@@ -1,5 +1,6 @@
 import tkinter as tk
 import customtkinter
+import time
 from FileProcessor import FileProcessor
 from FileGenerator import FileGenerator
 from tkinter.filedialog import askopenfile
@@ -158,37 +159,28 @@ class main_proyect():
                 self.file_processor = FileProcessor(self.file_generator.file_name, configure_algorithm_combo.get())
                 #Feeds page references to optimal MMU
                 self.file_processor.feed_opt_references()
-                print(self.file_processor.optimal_mmu.pointer_references)
+
+            window.after(1,execute_instruction)
 
             #Un tipo wait o algo asi antes de ejecutar la siguiente instruction
             #While len(self.file_processor.instruction) > 0
             # self,file_processor.processes_instruction()
             # wait(algunos_segundos)
-            self.file_processor.process_instruction()
-            #Sacar las estadisticas la as MMU
-            self.file_processor.process_instruction()
-            self.file_processor.process_instruction()
-            self.file_processor.process_instruction()
-            self.file_processor.process_instruction()
-            self.file_processor.process_instruction()
-            self.file_processor.process_instruction()
-            self.file_processor.process_instruction()
-            self.file_processor.process_instruction()
-            self.file_processor.process_instruction()
-            self.file_processor.process_instruction()
-            self.file_processor.process_instruction()
-            self.file_processor.process_instruction()
-            self.file_processor.process_instruction()
-            self.file_processor.process_instruction()
-            self.file_processor.process_instruction()
-            self.file_processor.process_instruction()
-            print(self.file_processor.selected_mmu.get_total_time())
+            #while self.file_processor.instruction_list:
+                #self.file_processor.process_instruction()
+                #time.sleep(1)
+                #print(self.file_processor.selected_mmu.get_total_time())
             print("Ejecutando...")
             name_algorithm.set("RAM - " + configure_algorithm_combo.get())
             name_mmu.set("MMU - " + configure_algorithm_combo.get())
             init_tables()
             init_statistics()
-            
+        
+        def execute_instruction():
+            if self.file_processor.instruction_list:
+                self.file_processor.process_instruction()
+                print(self.file_processor.selected_mmu.get_total_time())
+
         def init_statistics():
             processes_opt.set(dic_MMU_OPT["processes"])
             sim_time_opt .set(dic_MMU_OPT["sim-time"])
@@ -611,5 +603,6 @@ class main_proyect():
               
 
 # Ejecutar el bucle principal
-main_proyect(window)
+test_class = main_proyect(window)
+window.after(1000,test_class.execute_instruction)
 window.mainloop()

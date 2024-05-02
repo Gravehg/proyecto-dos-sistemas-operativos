@@ -110,7 +110,7 @@ class MMUSecondChance():
         for i in self.second_chance_queue:
             if i.get_page_id() == page.get_page_id():
                 self.available_addresses.append(page.get_segment())
-                self.second_chance_queue.remove(i)
+                self.second_chance_queue.remove(page)
                 self.current_memory_usage -= self.PAGE_SIZE
 
     

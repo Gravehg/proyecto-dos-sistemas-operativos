@@ -63,13 +63,56 @@ class MMUOptimal():
             self.available_addresses.append(self.replace_page())
 
     def process_use_command(self,pointer_id):
-        pass
+        if not self.is_pointer_in_map(pointer_id):
+            raise Exception("Couldn't find pointer when using",pointer_id)
+        if self.pointer_references:
+            self.pointer_references.remove(pointer_id)
+        pages = self.pointer_page_map[pointer_id]
+        for page in pages:
+            if not page.in_ram:
+                frame_address = self.allocate_page()
+                if frame_address is None:
+                    page.set_segment(self.replace_page())
+                else:
+                    page.set_segment(frame_address)
+                    self.current_memory_usage += self.PAGE_SIZE
+                page.set_in_ram()
+                self.loaded_pages.append(page)
+                #Aumentar el contador en 5s porque no estaba en ram
+                self.clock += 5
+                self.paging_clock += 5
+            else:
+                #Aumentar el reloj en 1s porque si estaba en ram
+                self.clock += 1        
 
     def process_delete_command(self,pointer_id):
-        pass
+        if self.is_pointer_in_map(pointer_id):
+            pages = self.pointer_page_map[pointer_id]
+            for page in pages:
+                self.delete_pages_from_loaded(page)
+            del self.pointer_page_map[pointer_id]
+            process = self.get_process_by_pointer(pointer_id)
+            process.delete_pointer(pointer_id)
+            self.delete_pointer_references(pointer_id)
+        else:
+            raise Exception("Couldn't find pointer when deleting", pointer_id)
+        
+    def delete_pointer_references(self, pointer_id):
+        self.pointer_references = [x for x in self.pointer_references if x != pointer_id]
+        
+    def delete_pages_from_loaded(self,page):
+        for i in self.loaded_pages:
+            if i.get_page_id() == page.get_page_id():
+                self.available_addresses.append(page.get_segment())
+                self.loaded_pages.remove(page)
+                self.current_memory_usage -= self.PAGE_SIZE
 
     def process_kill_command(self,pid):
-        pass
+        process = self.get_process_by_pid(pid)
+        pointers = process.get_pointers()
+        for pointer in pointers:
+            self.process_delete_command(pointer.get_pointer_id())
+        self.processes.remove(process)
 
     def is_pointer_in_map(self,pointer_id):
         return pointer_id in self.pointer_page_map
