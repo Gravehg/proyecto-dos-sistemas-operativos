@@ -26,3 +26,11 @@ class Process():
     def print_pointers(self):
         for pointer in self.pointers:
             print("Pointer id is: ", pointer.get_pointer_id())
+            
+    def get_pointers_list(self):
+        list_pointers = []
+        
+        for pointer in self.pointers:
+            list_pointers.append(pointer.get_pointer_id())
+            
+        return list_pointers

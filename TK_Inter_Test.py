@@ -154,16 +154,28 @@ class main_proyect(customtkinter.CTk):
             self.name_algorithm.set("RAM - " + self.configure_algorithm_combo.get())
             self.name_mmu.set("MMU - " + self.configure_algorithm_combo.get())
             self.init_tables()
-            self.init_statistics()
+            
+            
             self.execute_instruction()
         
     def execute_instruction(self):
             if self.file_processor.instruction_list:
                 self.file_processor.process_instruction()
-                print(self.file_processor.selected_mmu.get_total_time())
+                self.init_statistics()
+                
+                print("PAGES")
+                print(self.file_processor.selected_mmu.get_pages_map())
+                print()
+                print("PROCESS:")
+                print(self.file_processor.selected_mmu.get_process_map())
+                print("-------------------------------------")
+                print(self.file_processor.selected_mmu.get_table_info())
+                print("#####################################")
+                
             self.after(1000,self.execute_instruction)
 
     def init_statistics(self):
+            #OPT
             self.processes_opt.set(self.dic_MMU_OPT["processes"])
             self.sim_time_opt .set(self.dic_MMU_OPT["sim-time"])
             self.ram_kb_opt .set(self.dic_MMU_OPT["ram-kb"])
@@ -175,17 +187,19 @@ class main_proyect(customtkinter.CTk):
             self.seconds_thrashing_opt .set(self.dic_MMU_OPT["thrashing"]["seconds"])
             self.percentage_thrashing_opt .set(self.dic_MMU_OPT["thrashing"]["percentage"])
             self.fragmentacion_opt .set(self.dic_MMU_OPT["fragmentacion"])
-            self.processes_alg .set(self.dic_MMU_ALG["processes"])
-            self.sim_time_alg .set(self.dic_MMU_ALG["sim-time"])
-            self.ram_kb_alg .set(self.dic_MMU_ALG["ram-kb"])
-            self.ram_percentage_alg .set(self.dic_MMU_ALG["ram-percentage"])
-            self.v_ram_kb_alg .set(self.dic_MMU_ALG["v-ram-kb"])
-            self.v_ram_percentage_alg .set(self.dic_MMU_ALG["v-ram-percentage"])
-            self.loaded_pages_alg .set(self.dic_MMU_ALG["pages"]["loaded"])
-            self.unloaded_pages_alg .set(self.dic_MMU_ALG["pages"]["unloaded"])
-            self.seconds_thrashing_alg .set(self.dic_MMU_ALG["thrashing"]["seconds"])
-            self.percentage_thrashing_alg .set(self.dic_MMU_ALG["thrashing"]["percentage"])
-            self.fragmentacion_alg .set(self.dic_MMU_ALG["fragmentacion"])
+            
+            #ALG
+            self.processes_alg.set(str(self.file_processor.selected_mmu.get_num_process()))
+            self.sim_time_alg.set(str(self.file_processor.selected_mmu.get_total_time()) + "s")
+            self.ram_kb_alg.set(str(self.file_processor.selected_mmu.get_ram_in_kb()))
+            self.ram_percentage_alg.set(str(self.file_processor.selected_mmu.get_ram_in_percentage()))
+            self.v_ram_kb_alg.set(str(self.file_processor.selected_mmu.get_vram_in_kb()))
+            self.v_ram_percentage_alg.set(str(self.file_processor.selected_mmu.get_vram_in_percentage()))
+            self.loaded_pages_alg.set(self.dic_MMU_ALG["pages"]["loaded"])
+            self.unloaded_pages_alg.set(self.dic_MMU_ALG["pages"]["unloaded"])
+            self.seconds_thrashing_alg.set(str(self.file_processor.selected_mmu.get_trashing_time()))
+            self.percentage_thrashing_alg.set(str(self.file_processor.selected_mmu.get_trashing_time_percentage()))
+            self.fragmentacion_alg.set(str(self.file_processor.selected_mmu.get_fragmentation()))
             
     def initial_configurations(self):
             # Window Title
