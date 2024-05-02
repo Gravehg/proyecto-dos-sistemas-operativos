@@ -5,6 +5,7 @@ class Page():
         self.v_segment = v_segment
         self.in_ram = True
         self.bit = False
+        self.associated_pointer = None
     
     def set_in_ram(self):
         self.in_ram = not self.in_ram
@@ -29,3 +30,9 @@ class Page():
 
     def set_bit(self):
         self.bit = not self.bit
+
+    def set_associated_pointer(self, pointer_id):
+        self.associated_pointer = pointer_id
+    
+    def get_associated_pointer(self):
+        return self.associated_pointer
