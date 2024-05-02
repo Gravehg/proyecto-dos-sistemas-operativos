@@ -1,7 +1,8 @@
 class Page():
-    def __init__(self, segment, page_id):
+    def __init__(self, segment, page_id, v_segment):
         self.id = page_id
         self.segment = segment
+        self.v_segment = v_segment
         self.in_ram = True
         self.bit = False
     
@@ -13,6 +14,9 @@ class Page():
 
     def get_segment(self):
         return self.segment
+    
+    def get_v_segment(self):
+        return self.v_segment
     
     def get_page_id(self):
         return self.id

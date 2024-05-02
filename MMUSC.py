@@ -11,6 +11,7 @@ class MMUSecondChance():
         self.FRAME_NUM = self.RAM // 4
         self.available_addresses = [i * self.PAGE_SIZE for i in range(self.FRAME_NUM)]
         self.current_memory_usage = 0  # Memoria actualmente en uso
+        self.current_v_memory_usage = 0
         self.pointer_id_generator = 0  # Generador de IDs para punteros
         self.page_id_generator = 0  # Generador de IDs para páginas
         self.pointer_page_map = {}  # Mapa que relaciona punteros con páginas
@@ -39,15 +40,16 @@ class MMUSecondChance():
             if frame_address is None:
                 memory_segment = self.replace_page()
                 #Por default el bit es cero entonces todo bien
-                new_page = Page(memory_segment,self.page_id_generator)
+                new_page = Page(memory_segment,self.page_id_generator,self.current_v_memory_usage)
                 #Aumentar el contador del reloj por 5 segundos por el miss
                 self.clock += 5
                 self.paging_clock += 5
             else:
                 self.current_memory_usage += self.PAGE_SIZE
-                new_page = Page(frame_address,self.page_id_generator)
+                new_page = Page(frame_address,self.page_id_generator, self.current_v_memory_usage)
                 #Aumentar el contador del reloj por 1 segundo ya que si había memoria disponible
                 self.clock += 1
+            self.current_v_memory_usage
             self.pointer_page_map[self.pointer_id_generator].append(new_page)
             self.second_chance_queue.append(new_page)
 
