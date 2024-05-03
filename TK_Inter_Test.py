@@ -1,3 +1,4 @@
+import random
 import tkinter as tk
 import customtkinter
 import time
@@ -21,6 +22,8 @@ customtkinter.set_default_color_theme("dark-blue")
 class main_proyect(customtkinter.CTk):  
     def __init__(self):
         super().__init__()
+        self.map_colors = {}
+        
         self.file_processor = None
         self.file_generator = None
         self.selected_file = None
@@ -78,10 +81,10 @@ class main_proyect(customtkinter.CTk):
         self.percentage_thrashing_alg.set("-")
         self.fragmentacion_alg.set("-")
 
-        self.list_MMU_OPT = [('PAGE ID', 'PID', 'LOADED', 'L-ADDR', 'M-ADDR', 'D-ADDR', 'LOADED-T', 'MARK'),
-                ('1','1','X','1','1','-','0s','-', ("yellow", "black")),] 
-        self.list_MMU_ALG = [('PAGE ID', 'PID', 'LOADED', 'L-ADDR', 'M-ADDR', 'D-ADDR', 'LOADED-T', 'MARK'),
-                ('1','1','X','1','1','-','0s','-', ("yellow", "black")),]
+        self.list_MMU_OPT = [['PAGE ID', 'PID', 'LOADED', 'L-ADDR', 'M-ADDR', 'D-ADDR', 'LOADED-T', 'MARK'],
+                ['1','1','X','1','1','-','0s','-', ("yellow", "black")],] 
+        self.list_MMU_ALG = [['PAGE ID', 'PID', 'LOADED', 'L-ADDR', 'M-ADDR', 'D-ADDR', 'LOADED-T', 'MARK']]
+        #['1','1','X','1','1','-','0s','-', ("yellow", "black")]
         self.dic_MMU_OPT = {
             "processes":"5",
             "sim-time": "250s",
@@ -119,7 +122,6 @@ class main_proyect(customtkinter.CTk):
         }
         
         self.initial_configurations()
-        self.init_tables()
         self.another_init()
         self.mainloop()
    
@@ -153,8 +155,6 @@ class main_proyect(customtkinter.CTk):
             print("Ejecutando...")
             self.name_algorithm.set("RAM - " + self.configure_algorithm_combo.get())
             self.name_mmu.set("MMU - " + self.configure_algorithm_combo.get())
-            self.init_tables()
-            
             
             self.execute_instruction()
         
@@ -163,18 +163,15 @@ class main_proyect(customtkinter.CTk):
                 self.file_processor.process_instruction()
                 self.init_statistics()
                 
-                print("PAGES")
-                print(self.file_processor.selected_mmu.get_pages_map())
-                print()
-                print("PROCESS:")
-                print(self.file_processor.selected_mmu.get_process_map())
-                print("-------------------------------------")
-                print(self.file_processor.selected_mmu.get_table_info())
-                print("#####################################")
-                
-            self.after(1000,self.execute_instruction)
+            self.after(2000,self.execute_instruction)
 
     def init_statistics(self):
+        
+            list_table = self.file_processor.selected_mmu.get_table_info()
+            self.list_MMU_ALG = [['PAGE ID', 'PID', 'LOADED', 'L-ADDR', 'M-ADDR', 'D-ADDR', 'LOADED-T', 'MARK']]
+            for e in range(len(list_table)):
+                self.list_MMU_ALG.append(list_table[e])
+            self.update_tables()
             #OPT
             self.processes_opt.set(self.dic_MMU_OPT["processes"])
             self.sim_time_opt .set(self.dic_MMU_OPT["sim-time"])
@@ -221,17 +218,17 @@ class main_proyect(customtkinter.CTk):
             self.section_data_alg = customtkinter.CTkFrame(self.section_data, width=650, height=600)
             self.section_data_alg.pack(side=tk.RIGHT)
             
-            self.section_data_opt_table = customtkinter.CTkScrollableFrame(self.section_data_opt, width=628, height=400)
-            self.section_data_opt_table.pack(side=tk.TOP)
-            
             self.section_data_opt_statistics = customtkinter.CTkFrame(self.section_data_opt, width=650, height=200)
             self.section_data_opt_statistics.pack(side=tk.BOTTOM)
             
-            self.section_data_alg_table = customtkinter.CTkScrollableFrame(self.section_data_alg, width=628, height=400)
-            self.section_data_alg_table.pack(side=tk.TOP)
-            
             self.section_data_alg_statistics = customtkinter.CTkFrame(self.section_data_alg, width=650, height=200)
             self.section_data_alg_statistics.pack(side=tk.BOTTOM)
+            
+            self.section_data_opt_table = customtkinter.CTkScrollableFrame(self.section_data_opt, width=628, height=400)
+            self.section_data_opt_table.pack(side=tk.TOP)
+            
+            self.section_data_alg_table = customtkinter.CTkScrollableFrame(self.section_data_alg, width=628, height=400)
+            self.section_data_alg_table.pack(side=tk.TOP)
             
 
             #Configure Widgets
@@ -324,7 +321,7 @@ class main_proyect(customtkinter.CTk):
             self.frame_label_alg.grid(row = 0, column=0, columnspan=8, sticky="nsew")
             
             #Load table headers
-            for i in range(1):
+            for i in range(0):
                 for j in range(8):
                     if j % 2 == 0:
                         frame = customtkinter.CTkFrame(self.section_data_opt_table, width=80, height=20, corner_radius=0, fg_color="#363b41")
@@ -335,7 +332,7 @@ class main_proyect(customtkinter.CTk):
                     label.place(x=0, y=0)
                     frame.grid(row = i+1, column=j, sticky="nsew")
                     
-            for i in range(1):
+            for i in range(0):
                 for j in range(8):
                     if j % 2 == 0:
                         frame = customtkinter.CTkFrame(self.section_data_alg_table, width=80, height=20, corner_radius=0, fg_color="#363b41")
@@ -347,27 +344,89 @@ class main_proyect(customtkinter.CTk):
                     frame.grid(row = i+1, column=j, sticky="nsew")
         
         # Load data table
-    
-    def init_tables(self):
-            for i in range(1,len(self.list_MMU_OPT)):
-                for j in range(8):
-                    frame = customtkinter.CTkFrame(self.section_data_opt_table, width=80, height=20, corner_radius=0, fg_color=self.list_MMU_OPT[i][8][0])
-                    label = customtkinter.CTkLabel(frame, text= self.list_MMU_OPT[i][j], font=("Constantia",14), text_color=self.list_MMU_OPT[i][8][1])
-                    
-                    label.place(x=0, y=0)
-                    frame.grid(row = i+1, column=j, sticky="nsew")
-                    
-            for i in range(1,len(self.list_MMU_ALG)):
-                for j in range(8):
-                    frame = customtkinter.CTkFrame(self.section_data_alg_table, width=80, height=20, corner_radius=0, fg_color=self.list_MMU_ALG[i][8][0])
-                    label = customtkinter.CTkLabel(frame, text= self.list_MMU_ALG[i][j], font=("Constantia",14), text_color=self.list_MMU_ALG[i][8][1])
-                    
-                    label.place(x=0, y=0)
-                    frame.grid(row = i+1, column=j, sticky="nsew")
-                
-        #Statistics
         
+    def destroy_items_tables(self):
+        for widget in self.section_data_alg_table.winfo_children():
+            widget.destroy()
+            
+        for widget in self.section_data_opt_table.winfo_children():
+            widget.destroy()
+            
+        
+        self.section_data_opt_label.destroy()
+        self.section_data_alg_label.destroy()
+        self.frame_label_opt.destroy()
+        self.frame_label_alg.destroy()
+                
+    def update_tables(self):
+        self.destroy_items_tables()
+        
+        
+        list_keys = self.file_processor.selected_mmu.get_process_map().keys()
+        
+        for i in list_keys:
+            key = int(i)
+            use_keys = self.map_colors.keys()
+            
+            if key not in use_keys:
+                colores = ["#2F4F4F", "#9400D3", "#696969", "#4B0082", "#800000",
+                           "#C71585", "#000080", "#FF6347", "#60021D", "#8ab757",
+                           "#d74a75", "#021864", "#a39e08", "#4a5062", "#1080ba",
+                           "#b659b5"
+                           ]
+                color = random.choice(colores)
+                #color = "#" + "".join([random.choice("0123456789ABCDEF") for j in range(6)])
+                self.map_colors.setdefault(key,color)
+            
+    
         #Frames
+        self.frame_label_opt = customtkinter.CTkFrame(self.section_data_opt_table, fg_color="#363b41", width=100, height=20)
+        self.frame_label_alg = customtkinter.CTkFrame(self.section_data_alg_table, fg_color="#363b41", width=100, height=20)
+        
+        #Labels
+        self.section_data_opt_label = customtkinter.CTkLabel(self.frame_label_opt, text="MMU - OPT", font=("Constantia",15),text_color="white", width=650, height=20)
+        self.section_data_alg_label = customtkinter.CTkLabel(self.frame_label_alg, textvariable=self.name_mmu, font=("Constantia",15),text_color="white", width=650, height=20)
+        
+        #Place
+        self.section_data_opt_label.place(x = 0, y = 0)
+        self.section_data_alg_label.place(x = 0, y = 0)
+        
+        #Table Configure
+        self.section_data_opt_table.grid_rowconfigure(0, weight=1)
+        self.section_data_opt_table.grid_columnconfigure((0,1), weight=1)
+            
+        self.section_data_alg_table.grid_rowconfigure(0, weight=1)
+        self.section_data_alg_table.grid_columnconfigure((0,1), weight=1)
+        
+        self.frame_label_opt.grid(row = 0, column=0, columnspan=8, sticky="nsew")
+        self.frame_label_alg.grid(row = 0, column=0, columnspan=8, sticky="nsew")
+        
+        for i in range(len(self.list_MMU_OPT)):
+                for j in range(8):
+                    
+                    frame = customtkinter.CTkFrame(self.section_data_opt_table, width=80, height=20, corner_radius=0)
+                    #frame = customtkinter.CTkFrame(self.section_data_opt_table, width=80, height=20, corner_radius=0)
+                    #label = customtkinter.CTkLabel(frame, text= self.list_MMU_OPT[i][j], font=("Constantia",14), text_color=self.list_MMU_OPT[i][8][1])
+                    label = customtkinter.CTkLabel(frame, text= self.list_MMU_OPT[i][j], font=("Constantia",14))
+                    
+                    label.place(x=0, y=0)
+                    frame.grid(row = i+1, column=j, sticky="nsew")
+                    
+        for i in range(len(self.list_MMU_ALG)):
+            for j in range(8):
+                if i != 0:
+                    frame = customtkinter.CTkFrame(self.section_data_alg_table, width=80, height=20, corner_radius=0, fg_color=self.map_colors[int(self.list_MMU_ALG[i][1])])
+                else:
+                    frame = customtkinter.CTkFrame(self.section_data_alg_table, width=80, height=20, corner_radius=0)
+                #label = customtkinter.CTkLabel(frame, text= self.list_MMU_ALG[i][j], font=("Constantia",14), text_color=self.list_MMU_ALG[i][8][1])
+                label = customtkinter.CTkLabel(frame, text= self.list_MMU_ALG[i][j], font=("Constantia",14))
+                
+                label.place(x=0, y=0)
+                frame.grid(row = i+1, column=j, sticky="nsew")
+        
+        
+    
+
         
     def another_init(self):        
         self.frame_processes_opt_label = customtkinter.CTkFrame(self.section_data_opt_statistics, width=325, height=25, border_width=0)
