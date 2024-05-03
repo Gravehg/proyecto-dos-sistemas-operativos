@@ -206,8 +206,17 @@ class main_proyect(customtkinter.CTk):
             self.section_configure = customtkinter.CTkFrame(self, width=1300, height=100)
             self.section_configure.pack()
             
-            self.section_ram = customtkinter.CTkFrame(self, width=1300, height=100)
-            self.section_ram.pack()
+            self.section_ram_opt = customtkinter.CTkFrame(self, width=1300, height= 25)
+            self.section_ram_opt.pack()
+            
+            self.section_ram_opt_charge = customtkinter.CTkFrame(self, width=1300, height=25)
+            self.section_ram_opt_charge.pack()
+            
+            self.section_ram_alg = customtkinter.CTkFrame(self, width=1300, height= 25)
+            self.section_ram_alg.pack()
+            
+            self.section_ram_alg_charge = customtkinter.CTkFrame(self, width=1300, height=25)
+            self.section_ram_alg_charge.pack()
             
             self.section_data = customtkinter.CTkFrame(self, width=1300, height=600)
             self.section_data.pack()
@@ -280,21 +289,19 @@ class main_proyect(customtkinter.CTk):
             
             #Section Ram Widgets
             #Labels
-            self.section_ram_opt_label = customtkinter.CTkLabel(self.section_ram, text="RAM - OPT", font=("Constantia",15))
-            self.section_ram_alg_label = customtkinter.CTkLabel(self.section_ram, textvariable=self.name_algorithm, font=("Constantia",15))
+            self.section_ram_opt_label = customtkinter.CTkLabel(self.section_ram_opt, text="RAM - OPT", font=("Constantia",15))
+            self.section_ram_alg_label = customtkinter.CTkLabel(self.section_ram_alg, textvariable=self.name_algorithm, font=("Constantia",15))
 
             #Table Configure
-            self.section_ram.grid_rowconfigure(0,weight=1)
-            self.section_ram.grid_columnconfigure((0,1), weight=1)
             
             self.section_ram_opt_label.grid(row=0,column=0,columnspan=100, sticky="nsew")
             for i in range(100):
-                frame = customtkinter.CTkFrame(self.section_ram,width=13, height=13, corner_radius=0, fg_color="gray")
+                frame = customtkinter.CTkFrame(self.section_ram_opt_charge,width=13, height=13, corner_radius=0, fg_color="gray")
                 frame.grid(row=1, column= i)
                 
             self.section_ram_alg_label.grid(row = 3, column = 0, columnspan = 100, sticky="nsew")
             for i in range(100):
-                frame = customtkinter.CTkFrame(self.section_ram,width=13, height=13, corner_radius=0, fg_color="gray")
+                frame = customtkinter.CTkFrame(self.section_ram_alg_charge,width=13, height=13, corner_radius=0, fg_color="gray")
                 frame.grid(row=4, column= i)
                 
             #Section Data OPT
@@ -357,6 +364,29 @@ class main_proyect(customtkinter.CTk):
         self.section_data_alg_label.destroy()
         self.frame_label_opt.destroy()
         self.frame_label_alg.destroy()
+        
+    def destroy_ram_charge(self):
+        for widget in self.section_ram_opt_charge.winfo_children():
+            widget.destroy()
+        for widget in self.section_ram_alg_charge.winfo_children():
+            widget.destroy()
+        
+    def update_ram_charge(self):
+        self.destroy_ram_charge()
+        
+        self.section_ram_opt_label.grid(row=0,column=0,columnspan=100, sticky="nsew")
+        
+        
+        for i in range(100):
+            frame = customtkinter.CTkFrame(self.section_ram_opt_charge,width=13, height=13, corner_radius=0, fg_color="gray")
+            frame.grid(row=1, column= i)
+                
+        self.section_ram_alg_label.grid(row = 3, column = 0, columnspan = 100, sticky="nsew")
+        for i in range(100):
+            frame = customtkinter.CTkFrame(self.section_ram_alg_charge,width=13, height=13, corner_radius=0, fg_color="gray")
+            frame.grid(row=4, column= i)
+        
+        
                 
     def update_tables(self):
         self.destroy_items_tables()

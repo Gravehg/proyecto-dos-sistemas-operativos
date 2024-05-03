@@ -242,17 +242,21 @@ class MMUFIFO():
             loaded_t = None
             mark = None
             
-            self.process_active = False
+            #self.process_active = False
             for k1, v1 in processes_map.items():
                 if k in v1:
-                    self.process_active = True
+                    #self.process_active = True
                     self.pid_pointer = k1
             
-            if self.process_active:
-                for vals in v:
-                    self.page_id = vals["id"]
-                    self.loaded = vals["in_ram"]
-                    table_info.append([str(self.page_id), str(self.pid_pointer), str(self.loaded), "-", "-", "-", "-", "NO"])
+            #if self.process_active:
+            for vals in v:
+                self.page_id = vals["id"]
+                self.loaded = vals["in_ram"]
+                if self.loaded:
+                    table_info.append([str(self.page_id), str(self.pid_pointer), "X", "-", "-", "-", "-", "NO"])
+                else:
+                    table_info.append([str(self.page_id), str(self.pid_pointer), "", "-", "-", "-", "-", ""])
+            
                         
             
         return table_info
