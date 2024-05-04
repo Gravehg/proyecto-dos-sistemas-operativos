@@ -83,6 +83,7 @@ class MMUSecondChance():
             raise Exception("Couldn't find pointer")
         pages = self.pointer_page_map[pointer_id]
         pages_in_ram = [p for p in pages if p.in_ram]
+        time_pages_in_ram = len(pages_in_ram)
         pages_not_in_ram = [p for p in pages if not p.in_ram]
         #Setear el bit en ambos casos, porque se hace la referencia tanto si esta como si no esta en RAM
         for page in pages_not_in_ram:
@@ -100,7 +101,7 @@ class MMUSecondChance():
             self.paging_clock += 5
         for page in pages:
             page.bit = True
-        self.clock += 1*len(pages_in_ram)
+        self.clock += 1*time_pages_in_ram
 
     def replace_page_use(self,do_not_replace_pages):
         replaced = False
