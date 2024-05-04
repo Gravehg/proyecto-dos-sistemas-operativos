@@ -168,24 +168,31 @@ class main_proyect(customtkinter.CTk):
     def init_statistics(self):
             self.list_loaded_unloaded = self.file_processor.selected_mmu.get_pages_loaded_and_unloaded()
             
-            list_table = self.file_processor.selected_mmu.get_table_info()
+            list_table_alg = self.file_processor.selected_mmu.get_table_info()
+            list_table_opt = self.file_processor.optimal_mmu.get_table_info()
+            
             self.list_MMU_ALG = [['PAGE ID', 'PID', 'LOADED', 'L-ADDR', 'M-ADDR', 'D-ADDR', 'LOADED-T', 'MARK']]
-            for e in range(len(list_table)):
-                self.list_MMU_ALG.append(list_table[e])
+            for e in range(len(list_table_alg)):
+                self.list_MMU_ALG.append(list_table_alg[e])
+                
+            self.list_MMU_OPT = [['PAGE ID', 'PID', 'LOADED', 'L-ADDR', 'M-ADDR', 'D-ADDR', 'LOADED-T', 'MARK']]
+            for e in range(len(list_table_opt)):
+                self.list_MMU_OPT.append(list_table_opt[e])
+            
             self.update_tables()
             self.update_ram_charge()
             #OPT
-            self.processes_opt.set(self.dic_MMU_OPT["processes"])
-            self.sim_time_opt .set(self.dic_MMU_OPT["sim-time"])
-            self.ram_kb_opt .set(self.dic_MMU_OPT["ram-kb"])
-            self.ram_percentage_opt .set(self.dic_MMU_OPT["ram-percentage"])
-            self.v_ram_kb_opt .set(self.dic_MMU_OPT["v-ram-kb"])
-            self.v_ram_percentage_opt .set(self.dic_MMU_OPT["v-ram-percentage"])
-            self.loaded_pages_opt .set(self.dic_MMU_OPT["pages"]["loaded"])
-            self.unloaded_pages_opt .set(self.dic_MMU_OPT["pages"]["unloaded"])
-            self.seconds_thrashing_opt .set(self.dic_MMU_OPT["thrashing"]["seconds"])
-            self.percentage_thrashing_opt .set(self.dic_MMU_OPT["thrashing"]["percentage"])
-            self.fragmentacion_opt .set(self.dic_MMU_OPT["fragmentacion"])
+            self.processes_opt.set(self.file_processor.optimal_mmu.get_num_process())
+            self.sim_time_opt.set(str(self.file_processor.optimal_mmu.get_total_time()) + "s")
+            self.ram_kb_opt.set(str(self.file_processor.optimal_mmu.get_ram_in_kb()))
+            self.ram_percentage_opt.set(str(int(round(self.file_processor.optimal_mmu.get_ram_in_percentage(),2)*100)/100))
+            self.v_ram_kb_opt.set(str(self.file_processor.optimal_mmu.get_vram_in_kb()))
+            self.v_ram_percentage_opt.set(str(int(round(self.file_processor.optimal_mmu.get_vram_in_percentage(),2)*100)/100))
+            self.loaded_pages_opt.set(self.list_loaded_unloaded[0])
+            self.unloaded_pages_opt.set(self.list_loaded_unloaded[1])
+            self.seconds_thrashing_opt.set(str(self.file_processor.optimal_mmu.get_trashing_time()))
+            self.percentage_thrashing_opt.set(str(int(round(self.file_processor.optimal_mmu.get_trashing_time_percentage(),2)*100)/100))
+            self.fragmentacion_opt.set(str(int(round(self.file_processor.optimal_mmu.get_fragmentation(),2)*100)/100))
             
             #ALG
             self.processes_alg.set(str(self.file_processor.selected_mmu.get_num_process()))
@@ -392,23 +399,31 @@ class main_proyect(customtkinter.CTk):
         
         self.section_ram_opt_label.grid(row=0,column=0,columnspan=100, sticky="nsew")
         
-        for i in range(100):
+        self.col1 = 0
+        for i in list_paint:
+            for e in range(0,i[0]):
+                frame = customtkinter.CTkFrame(self.section_ram_opt_charge,width=13, height=13, corner_radius=0, fg_color=i[1])
+                frame.grid(row=0, column= self.col1)
+                self.col1 = self.col1 + 1
+        
+        for i in range(count, 100):
             frame = customtkinter.CTkFrame(self.section_ram_opt_charge,width=13, height=13, corner_radius=0, fg_color="gray")
-            frame.grid(row=1, column= i)
+            frame.grid(row=0, column= i)
                 
-        self.section_ram_alg_label.grid(row = 3, column = 0, columnspan = 100, sticky="nsew")
+        self.section_ram_alg_label.grid(row = 0, column = 0, columnspan = 100, sticky="nsew")
+        
         
         self.col = 0
         for i in list_paint:
             for e in range(0,i[0]):
                 frame = customtkinter.CTkFrame(self.section_ram_alg_charge,width=13, height=13, corner_radius=0, fg_color=i[1])
-                frame.grid(row=4, column= self.col)
+                frame.grid(row=0, column= self.col)
                 self.col = self.col + 1
         
         
         for i in range(count, 100):
             frame = customtkinter.CTkFrame(self.section_ram_alg_charge,width=13, height=13, corner_radius=0, fg_color="gray")
-            frame.grid(row=4, column= i)
+            frame.grid(row=0, column= i)
         
                 
     def update_tables(self):
@@ -456,10 +471,10 @@ class main_proyect(customtkinter.CTk):
         
         for i in range(len(self.list_MMU_OPT)):
                 for j in range(8):
-                    
-                    frame = customtkinter.CTkFrame(self.section_data_opt_table, width=80, height=20, corner_radius=0)
-                    #frame = customtkinter.CTkFrame(self.section_data_opt_table, width=80, height=20, corner_radius=0)
-                    #label = customtkinter.CTkLabel(frame, text= self.list_MMU_OPT[i][j], font=("Constantia",14), text_color=self.list_MMU_OPT[i][8][1])
+                    if i != 0:
+                        frame = customtkinter.CTkFrame(self.section_data_opt_table, width=80, height=20, corner_radius=0, fg_color=self.map_colors[int(self.list_MMU_OPT[i][1])])
+                    else:
+                        frame = customtkinter.CTkFrame(self.section_data_opt_table, width=80, height=20, corner_radius=0)
                     label = customtkinter.CTkLabel(frame, text= self.list_MMU_OPT[i][j], font=("Constantia",14))
                     
                     label.place(x=0, y=0)
@@ -471,7 +486,6 @@ class main_proyect(customtkinter.CTk):
                     frame = customtkinter.CTkFrame(self.section_data_alg_table, width=80, height=20, corner_radius=0, fg_color=self.map_colors[int(self.list_MMU_ALG[i][1])])
                 else:
                     frame = customtkinter.CTkFrame(self.section_data_alg_table, width=80, height=20, corner_radius=0)
-                #label = customtkinter.CTkLabel(frame, text= self.list_MMU_ALG[i][j], font=("Constantia",14), text_color=self.list_MMU_ALG[i][8][1])
                 label = customtkinter.CTkLabel(frame, text= self.list_MMU_ALG[i][j], font=("Constantia",14))
                 
                 label.place(x=0, y=0)

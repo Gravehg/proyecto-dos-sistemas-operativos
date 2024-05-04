@@ -249,6 +249,8 @@ class MMUFIFO():
     def get_total_time(self):
         return self.clock
     
+    #-----------------------
+    
     def get_num_process(self):
         len = 0
         for proc in self.processes:
