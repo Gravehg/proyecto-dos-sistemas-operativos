@@ -163,15 +163,16 @@ class main_proyect(customtkinter.CTk):
                 self.file_processor.process_instruction()
                 self.init_statistics()
                 
-            self.after(2000,self.execute_instruction)
+            self.after(1000,self.execute_instruction)
 
     def init_statistics(self):
-        
+            
             list_table = self.file_processor.selected_mmu.get_table_info()
             self.list_MMU_ALG = [['PAGE ID', 'PID', 'LOADED', 'L-ADDR', 'M-ADDR', 'D-ADDR', 'LOADED-T', 'MARK']]
             for e in range(len(list_table)):
                 self.list_MMU_ALG.append(list_table[e])
             self.update_tables()
+            self.update_ram_charge()
             #OPT
             self.processes_opt.set(self.dic_MMU_OPT["processes"])
             self.sim_time_opt .set(self.dic_MMU_OPT["sim-time"])
@@ -374,18 +375,40 @@ class main_proyect(customtkinter.CTk):
     def update_ram_charge(self):
         self.destroy_ram_charge()
         
-        self.section_ram_opt_label.grid(row=0,column=0,columnspan=100, sticky="nsew")
+        ram_colors = self.file_processor.selected_mmu.get_color_ram_info()
         
+        list_paint = []
+        count = 0
+        
+        for k, v in ram_colors.items():
+            list = []
+            count += int(v)
+            list.append(int(v))
+            list.append(self.map_colors[k])
+            
+            list_paint.append(list)
+            
+        print(list_paint)
+        
+        self.section_ram_opt_label.grid(row=0,column=0,columnspan=100, sticky="nsew")
         
         for i in range(100):
             frame = customtkinter.CTkFrame(self.section_ram_opt_charge,width=13, height=13, corner_radius=0, fg_color="gray")
             frame.grid(row=1, column= i)
                 
         self.section_ram_alg_label.grid(row = 3, column = 0, columnspan = 100, sticky="nsew")
-        for i in range(100):
+        
+        self.col = 0
+        for i in list_paint:
+            for e in range(0,i[0]):
+                frame = customtkinter.CTkFrame(self.section_ram_alg_charge,width=13, height=13, corner_radius=0, fg_color=i[1])
+                frame.grid(row=4, column= self.col)
+                self.col = self.col + 1
+        
+        
+        for i in range(count, 100):
             frame = customtkinter.CTkFrame(self.section_ram_alg_charge,width=13, height=13, corner_radius=0, fg_color="gray")
             frame.grid(row=4, column= i)
-        
         
                 
     def update_tables(self):

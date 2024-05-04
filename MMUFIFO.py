@@ -242,13 +242,10 @@ class MMUFIFO():
             loaded_t = None
             mark = None
             
-            #self.process_active = False
             for k1, v1 in processes_map.items():
                 if k in v1:
-                    #self.process_active = True
                     self.pid_pointer = k1
             
-            #if self.process_active:
             for vals in v:
                 self.page_id = vals["id"]
                 self.loaded = vals["in_ram"]
@@ -260,8 +257,36 @@ class MMUFIFO():
                         
             
         return table_info
-                
+    
+    def get_color_ram_info(self):
+        processes_map = self.get_process_map()
+        pointers_map = self.get_pages_map()
         
+        colors_info = {}
+        
+        for k,v in pointers_map.items():
+            counter = 0
+            self.id_process = None
+            
+            for k1,v1 in processes_map.items():
+                if k in v1:
+                    self.id_process = int(k1)
+            
+            for vals in v:
+                counter += 1
+            
+            process_in_list = False
+            for k2,v1 in colors_info.items():
+                if self.id_process == int(k2):
+                    process_in_list = True
+            
+            if process_in_list:
+                valor = colors_info[self.id_process] + counter
+                colors_info[self.id_process] = valor
+            else:
+                colors_info.setdefault(self.id_process,counter)
+                
+        return colors_info
         
         
         
