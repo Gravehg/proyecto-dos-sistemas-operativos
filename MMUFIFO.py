@@ -81,6 +81,7 @@ class MMUFIFO():
             raise Exception("Couldn't find pointer when using",pointer_id)
         pages = self.pointer_page_map[pointer_id]
         pages_in_ram = [p for p in pages if p.in_ram]
+        time_pages_in_ram = len(pages_in_ram);
         pages_not_in_ram = [p for p in pages if not p.in_ram]
         for page in pages_not_in_ram:
             frame_address = self.allocate_page()
@@ -89,13 +90,13 @@ class MMUFIFO():
             else:
                 page.set_segment(frame_address)
                 self.current_memory_usage += self.PAGE_SIZE
-                page.set_in_ram()
-                self.fifo_queue.append(page)
+            page.set_in_ram()
+            self.fifo_queue.append(page)
                 #Aumentar el contador en 5s porque no estaba en ram
             self.clock += 5
             self.paging_clock += 5
             pages_in_ram.append(page)
-        self.clock += 1*len(pages_in_ram)
+        self.clock += 1*time_pages_in_ram
 
     def replace_page_use(self,do_not_replace_pages):
         if not len(self.fifo_queue) == 0:
