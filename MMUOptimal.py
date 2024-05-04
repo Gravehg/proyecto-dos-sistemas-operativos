@@ -333,9 +333,9 @@ class MMUOptimal():
                 self.page_id = vals["id"]
                 self.loaded = vals["in_ram"]
                 if self.loaded:
-                    table_info.append([str(self.page_id), str(self.pid_pointer), "X", "-", "-", "-", "-", "NO"])
+                    table_info.append([str(self.page_id), str(self.pid_pointer), "X", str(self.pid_pointer), "-", "-", "-", "-"])
                 else:
-                    table_info.append([str(self.page_id), str(self.pid_pointer), "", "-", "-", "-", "-", ""])
+                    table_info.append([str(self.page_id), str(self.pid_pointer), "", str(self.pid_pointer), "-", "-", "-", "-"])
             
                         
             
