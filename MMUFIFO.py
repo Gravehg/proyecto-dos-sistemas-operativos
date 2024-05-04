@@ -335,6 +335,21 @@ class MMUFIFO():
                 colors_info.setdefault(self.id_process,counter)
                 
         return colors_info
+    
+    def get_pages_loaded_and_unloaded(self):
+        pointers_map = self.get_pages_map()
+        count_loaded = 0
+        count_unloaded = 0
+        
+        for k, v in pointers_map.items():
+            for val in v:
+                if val["in_ram"] == True:
+                    count_loaded += 1
+                else:
+                    count_unloaded +=1
+                    
+        return [count_loaded,count_unloaded]
+            
         
         
         
