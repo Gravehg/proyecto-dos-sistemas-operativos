@@ -85,7 +85,7 @@ class MMUOptimal():
             self.pointer_references.remove(pointer_id)
         pages = self.pointer_page_map[pointer_id]
         pages_in_ram = [p for p in pages if p.in_ram]
-        time_pages_in_ram = len(pages_in_ram);
+        time_pages_in_ram = len(pages_in_ram)
         pages_not_in_ram = [p for p in pages if not p.in_ram]
         for page in pages_not_in_ram:
             frame_address = self.allocate_page()
@@ -99,8 +99,8 @@ class MMUOptimal():
             #Aumentar el contador en 5s porque no estaba en ram
             self.clock += 5
             self.paging_clock += 5
-            pages_in_ram.append(page);
-        self.clock += 1*time_pages_in_ram;     
+            pages_in_ram.append(page)
+        self.clock += 1*time_pages_in_ram     
     
     def replace_page_use(self,do_not_replace_pages):
         max_distance = -1

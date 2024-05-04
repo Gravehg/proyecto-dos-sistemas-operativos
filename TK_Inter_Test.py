@@ -163,7 +163,7 @@ class main_proyect(customtkinter.CTk):
                 self.file_processor.process_instruction()
                 self.init_statistics()
                 
-            self.after(1000,self.execute_instruction)
+            self.after(2000,self.execute_instruction)
 
     def init_statistics(self):
             self.list_loaded_unloaded = self.file_processor.selected_mmu.get_pages_loaded_and_unloaded()
