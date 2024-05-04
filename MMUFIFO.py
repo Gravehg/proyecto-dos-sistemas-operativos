@@ -83,6 +83,7 @@ class MMUFIFO():
         pages_in_ram = [p for p in pages if p.in_ram]
         time_pages_in_ram = len(pages_in_ram);
         pages_not_in_ram = [p for p in pages if not p.in_ram]
+        print('PAGES NOT IN RAM ARE', len(pages_not_in_ram))
         for page in pages_not_in_ram:
             frame_address = self.allocate_page()
             if frame_address is None:
@@ -91,28 +92,25 @@ class MMUFIFO():
                 page.set_segment(frame_address)
                 self.current_memory_usage += self.PAGE_SIZE
             page.set_in_ram()
+            pages_in_ram.append(page)
             self.fifo_queue.append(page)
                 #Aumentar el contador en 5s porque no estaba en ram
             self.clock += 5
             self.paging_clock += 5
-            pages_in_ram.append(page)
         self.clock += 1*time_pages_in_ram
 
     def replace_page_use(self,do_not_replace_pages):
         if not len(self.fifo_queue) == 0:
-            selected_page = None
-            found = False
-            for p in self.fifo_queue:
-                for dnp in do_not_replace_pages:
-                    if p.get_page_id() != dnp.get_page_id():
-                        found = True
-                        break
-                if found:
-                    selected_page = p
-                    break
-            selected_page.set_in_ram()
-            self.fifo_queue.remove(selected_page)
-            return selected_page.get_segment()
+            page  = None
+            replaced = False
+            index = 0
+            while not replaced:
+                if self.fifo_queue[index] not in do_not_replace_pages:
+                    page = self.fifo_queue.pop(index)
+                    replaced = True
+            page.set_in_ram()
+            return page.get_segment()
+
 
             
     def process_delete_command(self,pointer_id):
