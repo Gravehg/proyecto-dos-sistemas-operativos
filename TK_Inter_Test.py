@@ -166,6 +166,7 @@ class main_proyect(customtkinter.CTk):
             self.after(1000,self.execute_instruction)
 
     def init_statistics(self):
+            self.list_loaded_unloaded = self.file_processor.selected_mmu.get_pages_loaded_and_unloaded()
             
             list_table = self.file_processor.selected_mmu.get_table_info()
             self.list_MMU_ALG = [['PAGE ID', 'PID', 'LOADED', 'L-ADDR', 'M-ADDR', 'D-ADDR', 'LOADED-T', 'MARK']]
@@ -190,14 +191,14 @@ class main_proyect(customtkinter.CTk):
             self.processes_alg.set(str(self.file_processor.selected_mmu.get_num_process()))
             self.sim_time_alg.set(str(self.file_processor.selected_mmu.get_total_time()) + "s")
             self.ram_kb_alg.set(str(self.file_processor.selected_mmu.get_ram_in_kb()))
-            self.ram_percentage_alg.set(str(self.file_processor.selected_mmu.get_ram_in_percentage()))
+            self.ram_percentage_alg.set(str(int(round(self.file_processor.selected_mmu.get_ram_in_percentage(),2)*100)/100))
             self.v_ram_kb_alg.set(str(self.file_processor.selected_mmu.get_vram_in_kb()))
-            self.v_ram_percentage_alg.set(str(self.file_processor.selected_mmu.get_vram_in_percentage()))
-            self.loaded_pages_alg.set(self.dic_MMU_ALG["pages"]["loaded"])
-            self.unloaded_pages_alg.set(self.dic_MMU_ALG["pages"]["unloaded"])
+            self.v_ram_percentage_alg.set(str(int(round(self.file_processor.selected_mmu.get_vram_in_percentage(),2)*100)/100))
+            self.loaded_pages_alg.set(self.list_loaded_unloaded[0])
+            self.unloaded_pages_alg.set(self.list_loaded_unloaded[1])
             self.seconds_thrashing_alg.set(str(self.file_processor.selected_mmu.get_trashing_time()))
-            self.percentage_thrashing_alg.set(str(self.file_processor.selected_mmu.get_trashing_time_percentage()))
-            self.fragmentacion_alg.set(str(self.file_processor.selected_mmu.get_fragmentation()))
+            self.percentage_thrashing_alg.set(str(int(round(self.file_processor.selected_mmu.get_trashing_time_percentage(),2)*100)/100))
+            self.fragmentacion_alg.set(str(int(round(self.file_processor.selected_mmu.get_fragmentation(),2)*100)/100))
             
     def initial_configurations(self):
             # Window Title
@@ -388,7 +389,6 @@ class main_proyect(customtkinter.CTk):
             
             list_paint.append(list)
             
-        print(list_paint)
         
         self.section_ram_opt_label.grid(row=0,column=0,columnspan=100, sticky="nsew")
         
