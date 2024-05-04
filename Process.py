@@ -31,3 +31,11 @@ class Process():
         for pointer in self.pointers:
             if pointer.get_pointer_id() == pointer_id:
                 return pointer.get_pointer_fragmentation()
+            
+    def get_pointers_list(self):
+        list_pointers = []
+        
+        for pointer in self.pointers:
+            list_pointers.append(pointer.get_pointer_id())
+            
+        return list_pointers
