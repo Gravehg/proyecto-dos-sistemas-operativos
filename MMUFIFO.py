@@ -24,6 +24,7 @@ class MMUFIFO():
         self.clock = 0
         #Used to track paging trashing time
         self.paging_clock = 0
+        self.wasted_thrashing_space = 0 
     
     def allocate_page(self):
         if not self.available_addresses:
@@ -32,28 +33,46 @@ class MMUFIFO():
 
     def process_new_command(self,pid,size):
         kb_size = size / 1000
-        num_pages = math.ceil(kb_size / 4)
+        exact_num_pages = kb_size / 4
+        num_pages = math.ceil(exact_num_pages)
+        exact_space_required = exact_num_pages * self.PAGE_SIZE
+        rounded_space_required = num_pages * self.PAGE_SIZE
+        self.wasted_thrashing_space += rounded_space_required - exact_space_required
         #Gets the process if it already exists, if not, then returns a new one
-        process = self.get_process(pid)
+        new_solicitude_wasted_space = rounded_space_required - exact_space_required
+        process = None
+        if self.is_existing_process(pid):
+            process = self.get_process(pid)
+        else:
+            process = self.create_process(pid)
         #Creates the new pointer
-        new_pointer = self.create_pointer()
+        new_pointer = self.create_pointer(new_solicitude_wasted_space)
         #Adds the pointer to the list of the process
         process.add_pointer(new_pointer)
+        #Si hay que reemplazar paginas
+        if len(self.available_addresses) < num_pages:
+            #Number of pages that need room
+            need_to_replace_number = num_pages - len(self.available_addresses)
+            #Number of pages for which the address pool has room
+            no_need_to_replace_number = len(self.available_addresses)
+            #Suma la cantidad de paginas que son NUEVAS EN LA RAM
+            self.current_memory_usage += self.PAGE_SIZE * no_need_to_replace_number
+            #Evicts the number of pages that need replacement
+            self.increase_available_addresses(need_to_replace_number)
+            #Increments both clock and paging clock by 5 seconds for each page that needed to be replaced
+            self.clock += 5*need_to_replace_number
+            self.paging_clock += 5*need_to_replace_number
+            #Increments the clock by 1 second for each page that did not need to be replaced
+            self.clock += 1*no_need_to_replace_number
+        else:
+            #If there is room for all pages, then just adds 1 second for each page
+            self.clock += 1*num_pages 
+            self.current_memory_usage += self.PAGE_SIZE * num_pages
         for _ in range(0,num_pages):
             self.page_id_generator += 1
-            frame_address = self.allocate_page()
-            if frame_address is None:
-                memory_segment = self.replace_page()
-                new_page = Page(memory_segment,self.page_id_generator, self.current_v_memory_usage)
-                #Aumentar el contador del reloj por 5 segundos por el miss
-                self.clock += 5
-                self.paging_clock += 5
-            else:
-                self.current_memory_usage += self.PAGE_SIZE
-                new_page = Page(frame_address,self.page_id_generator, self.current_v_memory_usage)
-                #Aumentar el contador del reloj por 1 segundo ya que si había memoria disponible
-                self.clock += 1
-            self.current_v_memory_usage += 4 
+            memory_segment = self.allocate_page()
+            new_page = Page(memory_segment,self.page_id_generator, self.current_v_memory_usage)
+            self.current_v_memory_usage += self.PAGE_SIZE
             self.pointer_page_map[self.pointer_id_generator].append(new_page)
             self.fifo_queue.append(new_page)
     
@@ -61,24 +80,40 @@ class MMUFIFO():
         if not self.is_pointer_in_map(pointer_id):
             raise Exception("Couldn't find pointer when using",pointer_id)
         pages = self.pointer_page_map[pointer_id]
-        for page in pages:
-            if not page.in_ram:
-                frame_address = self.allocate_page()
-                if frame_address is None:
-                    page.set_segment(self.replace_page())
-                else:
-                    page.set_segment(frame_address)
-                    self.current_memory_usage += self.PAGE_SIZE
+        pages_in_ram = [p for p in pages if p.in_ram]
+        pages_not_in_ram = [p for p in pages if not p.in_ram]
+        for page in pages_not_in_ram:
+            frame_address = self.allocate_page()
+            if frame_address is None:
+                page.set_segment(self.replace_page_use(pages_in_ram))
+            else:
+                page.set_segment(frame_address)
+                self.current_memory_usage += self.PAGE_SIZE
                 page.set_in_ram()
                 self.fifo_queue.append(page)
                 #Aumentar el contador en 5s porque no estaba en ram
-                self.clock += 5
-                self.paging_clock += 5
-            else:
-                #Aumentar el reloj en 1s porque si estaba en ram
-                self.clock += 1
+            self.clock += 5
+            self.paging_clock += 5
+            pages_in_ram.append(page)
+        self.clock += 1*len(pages_in_ram)
 
+    def replace_page_use(self,do_not_replace_pages):
+        if not len(self.fifo_queue) == 0:
+            selected_page = None
+            found = False
+            for p in self.fifo_queue:
+                for dnp in do_not_replace_pages:
+                    if p.get_page_id() != dnp.get_page_id():
+                        found = True
+                        break
+                if found:
+                    selected_page = p
+                    break
+            selected_page.set_in_ram()
+            self.fifo_queue.remove(selected_page)
+            return selected_page.get_segment()
 
+            
     def process_delete_command(self,pointer_id):
         if self.is_pointer_in_map(pointer_id):
             pages = self.pointer_page_map[pointer_id]
@@ -86,6 +121,7 @@ class MMUFIFO():
                 self.delete_pages_from_queue(page)
             del self.pointer_page_map[pointer_id]
             process = self.get_process_by_pointer(pointer_id)
+            self.wasted_thrashing_space -= process.get_pointer_fragmentation(pointer_id)
             process.delete_pointer(pointer_id)
         else:
             raise Exception("Couldn't find pointer when deleting", pointer_id)
@@ -109,11 +145,10 @@ class MMUFIFO():
     #no se si hay que usar esto, porque la cosa es que si borro estas paginas directamente
     #Entonces se me van a borrar ciertos segmentos de memoria y se van a perder las direcciones
     def delete_pages_from_queue(self,page):
-        for i in self.fifo_queue:
-            if i.get_page_id() == page.get_page_id():
-                self.available_addresses.append(page.get_segment())
-                self.fifo_queue.remove(page)
-                self.current_memory_usage -= self.PAGE_SIZE
+        if page in self.fifo_queue:
+            self.available_addresses.append(page.get_segment())
+            self.fifo_queue.remove(page)
+            self.current_memory_usage -= self.PAGE_SIZE
 
     
     def get_process_by_pointer(self, pointer_id):
@@ -126,18 +161,31 @@ class MMUFIFO():
         for proc in self.processes:
             if proc.get_process_id() == id:
                 return proc
+        raise Exception("Used unexisting process")
+    
+    def create_process(self,id):
         process = Process(id)
         self.processes.append(process)
         return process
     
-    def create_pointer(self):
+    def is_existing_process(self,pid):
+        for proc in self.processes:
+            if proc.get_process_id() == pid:
+                return True
+        return False 
+    
+    def create_pointer(self,new_solicitude_wasted_space):
         self.pointer_id_generator += 1
         new_pointer_id = self.pointer_id_generator 
-        new_pointer = Pointer(new_pointer_id)
+        new_pointer = Pointer(new_pointer_id,new_solicitude_wasted_space)
         if self.pointer_id_generator not in self.pointer_page_map:
             self.pointer_page_map[self.pointer_id_generator] = []
         return new_pointer
     
+    def increase_available_addresses(self, num_pages):
+        for _ in range(0,num_pages):
+            self.available_addresses.append(self.replace_page())
+
     def replace_page(self):
         if not len(self.fifo_queue) == 0:
             page = self.fifo_queue.pop(0)
@@ -195,7 +243,7 @@ class MMUFIFO():
         return (self.paging_clock / self.clock) * 100
     
     def get_fragmentation(self):
-        return len(self.available_addresses) * self.PAGE_SIZE
+        return self.wasted_thrashing_space
     
     def get_total_time(self):
         return self.clock
