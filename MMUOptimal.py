@@ -22,6 +22,8 @@ class MMUOptimal():
         self.clock = 0
         #Used to track paging trashing time
         self.paging_clock = 0
+        self.current_creating = []
+        self.wasted_thrashing_space = 0 
 
     def allocate_page(self):
         if not self.available_addresses:
@@ -30,35 +32,47 @@ class MMUOptimal():
         
     def process_new_command(self,pid,size):
         kb_size = size / 1000
-        num_pages = math.ceil(kb_size / 4)
+        exact_num_pages = kb_size / 4
+        num_pages = math.ceil(exact_num_pages)
+        exact_space_required = exact_num_pages * self.PAGE_SIZE
+        rounded_space_required = num_pages * self.PAGE_SIZE
+        self.wasted_thrashing_space += rounded_space_required - exact_space_required
         #Gets the process if it already exists, if not, then returns a new one
-        process = self.get_process(pid)
+        new_solicitude_wasted_space = rounded_space_required - exact_space_required
+        process = None
+        if self.is_existing_process(pid):
+            process = self.get_process(pid)
+        else:
+            process = self.create_process(pid)
         #Creates the new pointer
-        new_pointer = self.create_pointer()
+        new_pointer = self.create_pointer(new_solicitude_wasted_space)
         #Adds the pointer to the list of the process
         process.add_pointer(new_pointer)
-        if len(self.available_addresses) < num_pages:
-            #Number of pages that need room
-            need_to_replace_number = num_pages - len(self.available_addresses)
-            #Number of pages for which the address pool has room
-            no_need_to_replace_number = len(self.available_addresses)
-            self.increase_available_addresses(need_to_replace_number)
-            #Increments both clock and paging clock by 5 seconds for each page that needed to be replaced
-            self.clock += 5*need_to_replace_number
-            self.paging_clock += 5*need_to_replace_number
-            #Increments the clock by 1 second for each page that did not need to be replaced
-            self.clock += 1*no_need_to_replace_number
-        else:
-            self.clock += 1*num_pages                 
+        #Si hay que reemplazar paginas            
         for _ in range(0,num_pages):
             self.page_id_generator += 1
             frame_address = self.allocate_page()
-            new_page = Page(frame_address,self.page_id_generator,self.current_v_memory_usage)
-            new_page.set_associated_pointer(self.pointer_id_generator)
-            self.current_memory_usage += self.PAGE_SIZE
-            self.current_v_memory_usage += self.PAGE_SIZE
-            self.pointer_page_map[self.pointer_id_generator].append(new_page)         
-            self.loaded_pages.append(new_page)
+            if frame_address is None:
+                memory_segment = self.replace_page()
+                new_page = Page(memory_segment,self.page_id_generator, self.current_v_memory_usage)
+                new_page.set_associated_pointer(self.pointer_id_generator)
+                self.current_creating.append(new_page)
+                self.loaded_pages.append(new_page)
+                self.pointer_page_map[self.pointer_id_generator].append(new_page)
+                #Aumentar el contador del reloj por 5 segundos por el miss
+                self.clock += 5
+                self.paging_clock += 5 
+            else:
+                self.current_memory_usage += self.PAGE_SIZE
+                new_page = Page(frame_address,self.page_id_generator, self.current_v_memory_usage)
+                new_page.set_associated_pointer(self.pointer_id_generator)
+                self.current_creating.append(new_page)
+                self.loaded_pages.append(new_page)
+                self.pointer_page_map[self.pointer_id_generator].append(new_page)
+                #Aumentar el contador del reloj por 1 segundo ya que si había memoria disponible
+                self.clock += 1               
+            self.current_v_memory_usage += self.PAGE_SIZE         
+        self.current_creating = []
 
     def increase_available_addresses(self, num_pages):
         for _ in range(0,num_pages):
@@ -94,6 +108,7 @@ class MMUOptimal():
                 self.delete_pages_from_loaded(page)
             del self.pointer_page_map[pointer_id]
             process = self.get_process_by_pointer(pointer_id)
+            self.wasted_thrashing_space -= process.get_pointer_fragmentation(pointer_id)           
             process.delete_pointer(pointer_id)
             self.delete_pointer_references(pointer_id)
         else:
@@ -128,10 +143,10 @@ class MMUOptimal():
     #no se si hay que usar esto, porque la cosa es que si borro estas paginas directamente
     #Entonces se me van a borrar ciertos segmentos de memoria y se van a perder las direcciones
     def delete_pages_from_queue(self,page):
-        for i in self.fifo_queue:
+        for i in self.loaded_pages:
             if i.get_page_id() == page.get_page_id():
                 self.available_addresses.append(page.get_segment())
-                self.fifo_queue.remove(i)
+                self.loaded_pages.remove(page)
                 self.current_memory_usage -= self.PAGE_SIZE
 
     
@@ -145,30 +160,40 @@ class MMUOptimal():
         for proc in self.processes:
             if proc.get_process_id() == id:
                 return proc
+        raise Exception("Used unexisting process")
+    
+    def create_process(self,id):
         process = Process(id)
         self.processes.append(process)
         return process
     
-    def create_pointer(self):
+    def is_existing_process(self,pid):
+        for proc in self.processes:
+            if proc.get_process_id() == pid:
+                return True
+        return False 
+    
+    def create_pointer(self,new_solicitude_wasted_space):
         self.pointer_id_generator += 1
         new_pointer_id = self.pointer_id_generator 
-        new_pointer = Pointer(new_pointer_id)
+        new_pointer = Pointer(new_pointer_id,new_solicitude_wasted_space)
         if self.pointer_id_generator not in self.pointer_page_map:
             self.pointer_page_map[self.pointer_id_generator] = []
         return new_pointer
     
     def replace_page(self):
-        max_distance = - 1
+        max_distance = -1
         selected_page = None
         for page in self.loaded_pages:
-            distance = self.get_page_distance(page)
-            if distance > max_distance:
-                max_distance = distance
-                selected_page = page
-            elif not distance:
-                self.loaded_pages.remove(page)
-                page.set_in_ram()
-                return page.get_segment()
+            if not page in self.current_creating:
+                distance = self.get_page_distance(page)
+                if distance > max_distance:
+                    max_distance = distance
+                    selected_page = page
+                elif not distance:
+                    self.loaded_pages.remove(page)
+                    page.set_in_ram()
+                    return page.get_segment()
         self.loaded_pages.remove(selected_page)
         selected_page.set_in_ram()
         return selected_page.get_segment()
@@ -178,7 +203,7 @@ class MMUOptimal():
         
     def get_page_distance(self,page):
         try:
-            self.pointer_references.index(page.get_associated_pointer())
+            return self.pointer_references.index(page.get_associated_pointer())
         except ValueError:
             return False
 
@@ -235,7 +260,7 @@ class MMUOptimal():
         return (self.paging_clock / self.clock) * 100
     
     def get_fragmentation(self):
-        return len(self.available_addresses) * self.PAGE_SIZE
+        return self.wasted_thrashing_space
     
     def get_total_time(self):
         return self.clock

@@ -26,3 +26,8 @@ class Process():
     def print_pointers(self):
         for pointer in self.pointers:
             print("Pointer id is: ", pointer.get_pointer_id())
+
+    def get_pointer_fragmentation(self, pointer_id):
+        for pointer in self.pointers:
+            if pointer.get_pointer_id() == pointer_id:
+                return pointer.get_pointer_fragmentation()

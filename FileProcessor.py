@@ -21,6 +21,7 @@ class FileProcessor:
         self.instruction_list = []
         self.path = file_path
         self.read_file_instructions(self.path)
+        self.feed_opt_references()
 
     #Deberia llamarse cada cierto tiempo para que ejecute la instruccion siguiente y se actualice la interfaz
     def process_instruction_mmu(self, instruction, parameters):
