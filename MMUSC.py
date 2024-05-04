@@ -82,25 +82,41 @@ class MMUSecondChance():
         if not self.is_pointer_in_map(pointer_id):
             raise Exception("Couldn't find pointer")
         pages = self.pointer_page_map[pointer_id]
+        pages_in_ram = [p for p in pages if p.in_ram]
+        pages_not_in_ram = [p for p in pages if not p.in_ram]
         #Setear el bit en ambos casos, porque se hace la referencia tanto si esta como si no esta en RAM
-        for page in pages:
-            if not page.in_ram:
-                frame_address = self.allocate_page()
-                if frame_address is None:
-                    page.set_segment(self.replace_page())
-                else:
-                    page.set_segment(frame_address)
-                    self.current_memory_usage += self.PAGE_SIZE
-                page.set_in_ram()
-                page.set_bit()
-                self.second_chance_queue.append(page)
-                #Aumentar el contador en 5s porque no estaba en ram
-                self.clock += 5
-                self.paging_clock += 5
+        for page in pages_not_in_ram:
+            frame_address = self.allocate_page()
+            if frame_address is None:
+                page.set_segment(self.replace_page_use(pages_in_ram))
             else:
-                page.set_bit()
-                #Aumentar el reloj en 1s porque si estaba en ram
-                self.clock += 1
+                page.set_segment(frame_address)
+                self.current_memory_usage += self.PAGE_SIZE
+            page.set_in_ram()
+            self.second_chance_queue.append(page)
+            pages_in_ram.append(page)
+            #Aumentar el contador en 5s porque no estaba en ram
+            self.clock += 5
+            self.paging_clock += 5
+        for page in pages:
+            page.bit = True
+        self.clock += 1*len(pages_in_ram)
+
+    def replace_page_use(self,do_not_replace_pages):
+        replaced = False
+        p = None
+        index = 0
+        while(not replaced):
+            if self.second_chance_queue[index].bit and not self.second_chance_queue[index] in do_not_replace_pages:
+                p = self.second_chance_queue.pop(index)
+                p.set_bit()
+                self.second_chance_queue.append(p)
+            elif not self.second_chance_queue[index] in do_not_replace_pages:
+                p = self.second_chance_queue.pop(index)
+                p.set_in_ram()
+                replaced = True
+            index += 1
+        return p.get_segment()
 
     def process_delete_command(self, pointer_id):
         if self.is_pointer_in_map(pointer_id):
@@ -182,6 +198,7 @@ class MMUSecondChance():
                 self.second_chance_queue.append(p)
             else:
                 p = self.second_chance_queue.pop(0)
+                p.set_in_ram()
                 replaced = True
         return p.get_segment()
               
