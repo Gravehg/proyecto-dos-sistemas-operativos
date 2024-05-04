@@ -205,7 +205,6 @@ class MMUFIFO():
         for proc in self.processes:
             print("Process ID is: ",proc.get_process_id())
             proc.print_pointers()
-            print("-------------------------------------")
 
 
     def print_queue(self):
@@ -236,7 +235,6 @@ class MMUFIFO():
     
     def get_vram_in_percentage(self):
         return ((self.get_vram_in_kb()+self.get_ram_in_kb())/self.RAM) * 100
-    
 
     def get_trashing_time(self):
         return self.paging_clock
@@ -249,3 +247,94 @@ class MMUFIFO():
     
     def get_total_time(self):
         return self.clock
+    
+    def get_num_process(self):
+        len = 0
+        for proc in self.processes:
+            len += 1
+        return len
+    
+    def get_process_map(self):
+        process_map = {}
+        for proc in self.processes:
+            process_id = str(proc.get_process_id())
+            list_pointers = proc.get_pointers_list()
+            process_map[str(process_id)] = list_pointers 
+        
+        return process_map
+    
+    def get_pages_map(self):
+        all_pointers = {}
+        
+        for k,v in self.pointer_page_map.items():
+            pages_list = []
+            
+            for val in v:
+                pages_list.append(val.get_all())
+                
+            all_pointers.setdefault(k,pages_list)
+            
+        return all_pointers
+    
+    def get_table_info(self):
+        processes_map = self.get_process_map()
+        pointers_map = self.get_pages_map()
+        table_info = []
+        
+        for k,v in pointers_map.items():
+            self.pid_pointer = None
+            self.page_id = None
+            self.loaded = None
+            self.l_addr = None
+            m_addr = None
+            loaded_t = None
+            mark = None
+            
+            for k1, v1 in processes_map.items():
+                if k in v1:
+                    self.pid_pointer = k1
+            
+            for vals in v:
+                self.page_id = vals["id"]
+                self.loaded = vals["in_ram"]
+                if self.loaded:
+                    table_info.append([str(self.page_id), str(self.pid_pointer), "X", "-", "-", "-", "-", "NO"])
+                else:
+                    table_info.append([str(self.page_id), str(self.pid_pointer), "", "-", "-", "-", "-", ""])
+            
+                        
+            
+        return table_info
+    
+    def get_color_ram_info(self):
+        processes_map = self.get_process_map()
+        pointers_map = self.get_pages_map()
+        
+        colors_info = {}
+        
+        for k,v in pointers_map.items():
+            counter = 0
+            self.id_process = None
+            
+            for k1,v1 in processes_map.items():
+                if k in v1:
+                    self.id_process = int(k1)
+            
+            for vals in v:
+                counter += 1
+            
+            process_in_list = False
+            for k2,v1 in colors_info.items():
+                if self.id_process == int(k2):
+                    process_in_list = True
+            
+            if process_in_list:
+                valor = colors_info[self.id_process] + counter
+                colors_info[self.id_process] = valor
+            else:
+                colors_info.setdefault(self.id_process,counter)
+                
+        return colors_info
+        
+        
+        

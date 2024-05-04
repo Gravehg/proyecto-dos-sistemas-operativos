@@ -36,3 +36,13 @@ class Page():
     
     def get_associated_pointer(self):
         return self.associated_pointer
+    
+    def get_all(self):
+        map_attributes = {}
+        
+        map_attributes.setdefault("id", self.id)
+        map_attributes.setdefault("segment", self.segment)
+        map_attributes.setdefault("in_ram", self.in_ram)
+        map_attributes.setdefault("bit", self.bit)
+        
+        return map_attributes
