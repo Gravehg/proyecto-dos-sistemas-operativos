@@ -21,6 +21,7 @@ class MMUSecondChance():
         self.clock = 0
         #Used to track paging trashing time
         self.paging_clock = 0
+        self.wasted_thrashing_space = 0 
 
     def allocate_page(self):
         if not self.available_addresses:
@@ -29,11 +30,24 @@ class MMUSecondChance():
 
     # Método para procesar el comando 'new' y asignar memoria a un proceso nuevo
     def process_new_command(self, pid, size):
-        kb_size = size / 1000  # Convertir el tamaño de bytes a KB
-        num_pages = math.ceil(kb_size / 4)  # Calcular el número de páginas necesarias
-        process = self.get_process(pid)  # Obtener el proceso existente o crear uno nuevo
-        new_pointer = self.create_pointer()  # Crear un nuevo puntero para el proceso
-        process.add_pointer(new_pointer)  # Agregar el puntero al proceso
+        kb_size = size / 1000
+        exact_num_pages = kb_size / 4
+        num_pages = math.ceil(exact_num_pages)
+        exact_space_required = exact_num_pages * self.PAGE_SIZE
+        rounded_space_required = num_pages * self.PAGE_SIZE
+        self.wasted_thrashing_space += rounded_space_required - exact_space_required
+        #Gets the process if it already exists, if not, then returns a new one
+        new_solicitude_wasted_space = rounded_space_required - exact_space_required
+        process = None
+        if self.is_existing_process(pid):
+            process = self.get_process(pid)
+        else:
+            process = self.create_process(pid)
+        #Creates the new pointer
+        new_pointer = self.create_pointer(new_solicitude_wasted_space)
+        #Adds the pointer to the list of the process
+        process.add_pointer(new_pointer)
+        #Si hay que reemplazar paginas   
         if len(self.available_addresses) < num_pages:
             #Number of pages that need room
             need_to_replace_number = num_pages - len(self.available_addresses)
@@ -95,6 +109,7 @@ class MMUSecondChance():
                 self.delete_pages_from_queue(page)
             del self.pointer_page_map[pointer_id]
             process = self.get_process_by_pointer(pointer_id)
+            self.wasted_thrashing_space -= process.get_pointer_fragmentation(pointer_id)
             process.delete_pointer(pointer_id)
         else:
             raise Exception("Couldn't find pointer")
@@ -135,14 +150,23 @@ class MMUSecondChance():
         for proc in self.processes:
             if proc.get_process_id() == id:
                 return proc
+        raise Exception("Used unexisting process")
+    
+    def create_process(self,id):
         process = Process(id)
         self.processes.append(process)
         return process
     
-    def create_pointer(self):
+    def is_existing_process(self,pid):
+        for proc in self.processes:
+            if proc.get_process_id() == pid:
+                return True
+        return False 
+    
+    def create_pointer(self,new_solicitude_wasted_space):
         self.pointer_id_generator += 1
         new_pointer_id = self.pointer_id_generator 
-        new_pointer = Pointer(new_pointer_id)
+        new_pointer = Pointer(new_pointer_id,new_solicitude_wasted_space)
         if self.pointer_id_generator not in self.pointer_page_map:
             self.pointer_page_map[self.pointer_id_generator] = []
         return new_pointer
@@ -213,7 +237,7 @@ class MMUSecondChance():
         return (self.paging_clock / self.clock) * 100
     
     def get_fragmentation(self):
-        return len(self.available_addresses) * self.PAGE_SIZE
+        return self.wasted_thrashing_space
     
     def get_total_time(self):
         return self.clock
