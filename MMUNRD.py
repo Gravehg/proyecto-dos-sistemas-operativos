@@ -219,7 +219,7 @@ class MMURND():
         return (self.paging_clock / self.clock) * 100
     
     def get_fragmentation(self):
-        return len(self.available_addresses) * self.PAGE_SIZE
+        return self.wasted_thrashing_space
     
     def get_total_time(self):
         return self.clock

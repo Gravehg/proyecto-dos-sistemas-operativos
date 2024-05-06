@@ -10,7 +10,7 @@ import time
 
 new_file_generator = FileGenerator(10,5000,1282817)
 new_file_generator.generate_file()
-new_file_processor = FileProcessor("test.txt", "FIFO")
+new_file_processor = FileProcessor("test.txt", "MRU")
 while(new_file_processor.instruction_list):
     #time.sleep(1)
     new_file_processor.process_instruction()
