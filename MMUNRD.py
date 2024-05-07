@@ -16,9 +16,10 @@ class MMURND():
         self.page_id_generator = 0
         self.pointer_page_map = {}
         self.processes = []
-        self.fifo_queue = []
+        self.loaded_pages = []
         self.clock = 0
         self.paging_clock = 0
+        self.wasted_thrashing_space = 0
 
     def allocate_page(self):
         if not self.available_addresses:
@@ -27,52 +28,79 @@ class MMURND():
 
     def process_new_command(self, pid, size):
         kb_size = size / 1000
-        num_pages = math.ceil(kb_size / 4)
-        process = self.get_process(pid)
-        new_pointer = self.create_pointer()
+        exact_num_pages = kb_size / 4
+        num_pages = math.ceil(exact_num_pages)
+        exact_space_required = exact_num_pages * self.PAGE_SIZE
+        rounded_space_required = num_pages * self.PAGE_SIZE
+        self.wasted_thrashing_space += rounded_space_required - exact_space_required
+        new_solicitude_wasted_space = rounded_space_required - exact_space_required
+        process = None
+        if self.is_existing_process(pid):
+            process = self.get_process(pid)
+        else:
+            process = self.create_process(pid)
+        new_pointer = self.create_pointer(new_solicitude_wasted_space)
         process.add_pointer(new_pointer)
-        for _ in range(0, num_pages):
+        if len(self.available_addresses) < num_pages:
+            need_to_replace_number = num_pages - len(self.available_addresses)
+            no_need_to_replace_number = len(self.available_addresses)
+            self.current_memory_usage += self.PAGE_SIZE * no_need_to_replace_number
+            self.increase_available_addresses(need_to_replace_number)
+            self.clock += 5*need_to_replace_number
+            self.paging_clock += 5*need_to_replace_number
+            self.clock += 1*no_need_to_replace_number
+        else:
+            self.clock += 1*num_pages 
+            self.current_memory_usage += self.PAGE_SIZE * num_pages
+        for _ in range(0,num_pages):
             self.page_id_generator += 1
-            frame_address = self.allocate_page()
-            if frame_address is None:
-                memory_segment = self.replace_page()
-                new_page = Page(memory_segment, self.page_id_generator, self.current_v_memory_usage)
-                self.clock += 5
-                self.paging_clock += 5
-            else:
-                self.current_memory_usage += self.PAGE_SIZE
-                new_page = Page(frame_address, self.page_id_generator, self.current_v_memory_usage)
-                self.clock += 1
-            self.current_v_memory_usage += 4 
+            memory_segment = self.allocate_page()
+            new_page = Page(memory_segment,self.page_id_generator, self.current_v_memory_usage)
+            self.current_v_memory_usage += self.PAGE_SIZE
             self.pointer_page_map[self.pointer_id_generator].append(new_page)
-            self.fifo_queue.append(new_page)
+            self.loaded_pages.append(new_page)
     
     def process_use_command(self, pointer_id):
         if not self.is_pointer_in_map(pointer_id):
-            raise Exception("Couldn't find pointer when using", pointer_id)
+            raise Exception("Couldn't find pointer when using",pointer_id)
         pages = self.pointer_page_map[pointer_id]
-        for page in pages:
-            if not page.in_ram:
-                frame_address = self.allocate_page()
-                if frame_address is None:
-                    page.set_segment(self.replace_page())
-                else:
-                    page.set_segment(frame_address)
-                    self.current_memory_usage += self.PAGE_SIZE
-                page.set_in_ram()
-                self.fifo_queue.append(page)
-                self.clock += 5
-                self.paging_clock += 5
+        pages_in_ram = [p for p in pages if p.in_ram]
+        time_pages_in_ram = len(pages_in_ram);
+        pages_not_in_ram = [p for p in pages if not p.in_ram]
+        for page in pages_not_in_ram:
+            frame_address = self.allocate_page()
+            if frame_address is None:
+                page.set_segment(self.replace_page_use(pages_in_ram))
             else:
-                self.clock += 1
+                page.set_segment(frame_address)
+                self.current_memory_usage += self.PAGE_SIZE
+            page.set_in_ram()
+            self.loaded_pages.append(page)
+            self.clock += 5
+            self.paging_clock += 5
+            pages_in_ram.append(page)
+        self.clock += 1*time_pages_in_ram
 
-    def process_delete_command(self, pointer_id):
+
+    def replace_page_use(self, do_not_replace_pages):
+            replaceable = False
+            page = None
+            while not replaceable:
+                random_page_index = random.randint(0, len(self.loaded_pages) - 1)
+                if not self.loaded_pages[random_page_index] in do_not_replace_pages:
+                    page = self.loaded_pages.pop(random_page_index)
+                    page.set_in_ram()
+                    replaceable = True
+            return page.get_segment()
+
+    def process_delete_command(self,pointer_id):
         if self.is_pointer_in_map(pointer_id):
             pages = self.pointer_page_map[pointer_id]
             for page in pages:
                 self.delete_pages_from_queue(page)
             del self.pointer_page_map[pointer_id]
             process = self.get_process_by_pointer(pointer_id)
+            self.wasted_thrashing_space -= process.get_pointer_fragmentation(pointer_id)
             process.delete_pointer(pointer_id)
         else:
             raise Exception("Couldn't find pointer when deleting", pointer_id)
@@ -94,10 +122,10 @@ class MMURND():
         raise Exception("Couldn't find process")
 
     def delete_pages_from_queue(self, page):
-        for i in self.fifo_queue:
+        for i in self.loaded_pages:
             if i.get_page_id() == page.get_page_id():
                 self.available_addresses.append(page.get_segment())
-                self.fifo_queue.remove(page)
+                self.loaded_pages.remove(page)
                 self.current_memory_usage -= self.PAGE_SIZE
 
     def get_process_by_pointer(self, pointer_id):
@@ -110,22 +138,35 @@ class MMURND():
         for proc in self.processes:
             if proc.get_process_id() == id:
                 return proc
+        raise Exception("Used unexisting process")
+    
+    def create_process(self,id):
         process = Process(id)
         self.processes.append(process)
         return process
-
-    def create_pointer(self):
+    
+    def is_existing_process(self,pid):
+        for proc in self.processes:
+            if proc.get_process_id() == pid:
+                return True
+        return False 
+    
+    def create_pointer(self,new_solicitude_wasted_space):
         self.pointer_id_generator += 1
         new_pointer_id = self.pointer_id_generator 
-        new_pointer = Pointer(new_pointer_id)
+        new_pointer = Pointer(new_pointer_id,new_solicitude_wasted_space)
         if self.pointer_id_generator not in self.pointer_page_map:
             self.pointer_page_map[self.pointer_id_generator] = []
         return new_pointer
+
+    def increase_available_addresses(self, num_pages):
+        for _ in range(0,num_pages):
+            self.available_addresses.append(self.replace_page())
     
     def replace_page(self):
-        if self.fifo_queue:
-            random_page_index = random.randint(0, len(self.fifo_queue) - 1)
-            page = self.fifo_queue.pop(random_page_index)
+        if self.loaded_pages:
+            random_page_index = random.randint(0, len(self.loaded_pages) - 1)
+            page = self.loaded_pages.pop(random_page_index)
             page.set_in_ram()
             return page.get_segment()
 
@@ -144,7 +185,7 @@ class MMURND():
 
     def print_queue(self):
         print("Queue")
-        for i in self.fifo_queue:
+        for i in self.loaded_pages:
             i.print_page()
 
     def print_available_addresses(self):
@@ -178,7 +219,7 @@ class MMURND():
         return (self.paging_clock / self.clock) * 100
     
     def get_fragmentation(self):
-        return len(self.available_addresses) * self.PAGE_SIZE
+        return self.wasted_thrashing_space
     
     def get_total_time(self):
         return self.clock

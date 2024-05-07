@@ -20,6 +20,8 @@ class MMUMRU():
         self.clock = 0
         #Used to track paging trashing time
         self.paging_clock = 0
+        self.wasted_thrashing_space = 0
+        self.current_v_memory_usage = 0
         
     def allocate_page(self):
         if not self.available_addresses:
@@ -76,6 +78,16 @@ class MMUMRU():
             raise Exception("Couldn't find pointer when using",pointer_id)
         pages = self.pointer_page_map[pointer_id]
         pages_in_ram = [p for p in pages if p.in_ram]
+        mru_pages = []
+        index = 0
+        while index < len(pages_in_ram):
+            page = pages_in_ram[index]
+            for i in range(0, len(self.loaded_pages)):
+                if self.loaded_pages[i].get_page_id() == page.get_page_id():
+                    self.loaded_pages.pop(i)
+                    mru_pages.append(page)
+                    break
+            index += 1
         time_pages_in_ram = len(pages_in_ram);
         pages_not_in_ram = [p for p in pages if not p.in_ram]
         for page in pages_not_in_ram:
@@ -86,15 +98,29 @@ class MMUMRU():
                 page.set_segment(frame_address)
                 self.current_memory_usage += self.PAGE_SIZE
             page.set_in_ram()
-            self.fifo_queue.append(page)
+            pages_in_ram.append(page)
+            mru_pages.append(page)
                 #Aumentar el contador en 5s porque no estaba en ram
             self.clock += 5
             self.paging_clock += 5
-            pages_in_ram.append(page)
         self.clock += 1*time_pages_in_ram
+        #Ahora todas deberian estar en RAM
+        for page in mru_pages:
+            self.loaded_pages.insert(0,page)
+
 
     def replace_page_use(self,do_not_replace_pages):
-        pass
+        if not len(self.loaded_pages) == 0:
+            page  = None
+            replaced = False
+            index = 0
+            while not replaced:
+                if self.loaded_pages[index] not in do_not_replace_pages:
+                    page = self.loaded_pages.pop(index)
+                    replaced = True
+            page.set_in_ram()
+            return page.get_segment()
+
 
     def process_delete_command(self,pointer_id):
         if self.is_pointer_in_map(pointer_id):
@@ -117,9 +143,7 @@ class MMUMRU():
 
     def increase_available_addresses(self, num_pages):
         for _ in range(0,num_pages):
-            page = self.mru_queue.pop(0)
-            page.set_in_ram()
-            self.available_addresses.append(page.get_segment())
+            self.available_addresses.append(self.replace_page())
 
     def is_pointer_in_map(self,pointer_id):
         return pointer_id in self.pointer_page_map
@@ -134,9 +158,9 @@ class MMUMRU():
     #no se si hay que usar esto, porque la cosa es que si borro estas paginas directamente
     #Entonces se me van a borrar ciertos segmentos de memoria y se van a perder las direcciones
     def delete_pages_from_queue(self,page):
-        if page in self.fifo_queue:
+        if page in self.loaded_pages:
             self.available_addresses.append(page.get_segment())
-            self.fifo_queue.remove(page)
+            self.loaded_pages.remove(page)
             self.current_memory_usage -= self.PAGE_SIZE
 
     
@@ -176,7 +200,11 @@ class MMUMRU():
             self.available_addresses.append(self.replace_page())
 
     def replace_page(self):
-        pass
+        if not len(self.loaded_pages) == 0:
+             page = self.loaded_pages.pop(0)
+             page.set_in_ram()
+             return page.get_segment()
+
 
     #You can use this to debug
     def print_map(self):
@@ -195,7 +223,7 @@ class MMUMRU():
 
     def print_queue(self):
         print("Queue")
-        for i in self.fifo_queue:
+        for i in self.loaded_pages:
             i.print_page()
 
     def print_available_addresses(self):
