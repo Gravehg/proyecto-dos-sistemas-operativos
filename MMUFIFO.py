@@ -298,10 +298,11 @@ class MMUFIFO():
             for vals in v:
                 self.page_id = vals["id"]
                 self.loaded = vals["in_ram"]
+                self.m_addr = vals["segment"]
                 if self.loaded:
-                    table_info.append([str(self.page_id), str(self.pid_process), "X", str(self.l_addr), "-", "-", "-", "-"])
+                    table_info.append([str(self.page_id), str(self.pid_process), "X", str(self.l_addr), "-", "-", "-", ""])
                 else:
-                    table_info.append([str(self.page_id), str(self.pid_process), "", str(self.l_addr), "-", "-", "-", "-"])
+                    table_info.append([str(self.page_id), str(self.pid_process), "", str(self.l_addr), "-", "-", "-", ""])
             
                         
         return table_info
