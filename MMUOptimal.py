@@ -85,7 +85,7 @@ class MMUOptimal():
             self.pointer_references.remove(pointer_id)
         pages = self.pointer_page_map[pointer_id]
         pages_in_ram = [p for p in pages if p.in_ram]
-        time_pages_in_ram = len(pages_in_ram);
+        time_pages_in_ram = len(pages_in_ram)
         pages_not_in_ram = [p for p in pages if not p.in_ram]
         for page in pages_not_in_ram:
             frame_address = self.allocate_page()
@@ -99,8 +99,8 @@ class MMUOptimal():
             #Aumentar el contador en 5s porque no estaba en ram
             self.clock += 5
             self.paging_clock += 5
-            pages_in_ram.append(page);
-        self.clock += 1*time_pages_in_ram;     
+            pages_in_ram.append(page)
+        self.clock += 1*time_pages_in_ram     
     
     def replace_page_use(self,do_not_replace_pages):
         max_distance = -1
@@ -317,28 +317,28 @@ class MMUOptimal():
         table_info = []
         
         for k,v in pointers_map.items():
-            self.pid_pointer = None
+            self.pid_process = None
             self.page_id = None
             self.loaded = None
-            self.l_addr = None
-            m_addr = None
-            loaded_t = None
-            mark = None
+            self.l_addr = k
+            self.m_addr = None
+            self.loaded_t = None
+            self.mark = None
             
             for k1, v1 in processes_map.items():
                 if k in v1:
-                    self.pid_pointer = k1
+                    self.pid_process = k1
             
             for vals in v:
                 self.page_id = vals["id"]
                 self.loaded = vals["in_ram"]
+                self.m_addr = vals["segment"]
                 if self.loaded:
-                    table_info.append([str(self.page_id), str(self.pid_pointer), "X", "-", "-", "-", "-", "NO"])
+                    table_info.append([str(self.page_id), str(self.pid_process), "X", str(self.l_addr), str(self.m_addr), "-", "-", ""])
                 else:
-                    table_info.append([str(self.page_id), str(self.pid_pointer), "", "-", "-", "-", "-", ""])
+                    table_info.append([str(self.page_id), str(self.pid_process), "", str(self.l_addr), str(self.m_addr), "-", "-", ""])
             
                         
-            
         return table_info
     
     def get_color_ram_info(self):

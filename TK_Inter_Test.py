@@ -5,7 +5,9 @@ import time
 from FileProcessor import FileProcessor
 from FileGenerator import FileGenerator
 from tkinter.filedialog import askopenfile
-
+from tkinter import filedialog
+import shutil
+import os
 
 #Window TkInter
 customtkinter.set_appearance_mode("dark")
@@ -24,6 +26,8 @@ class main_proyect(customtkinter.CTk):
         super().__init__()
         self.map_colors = {}
         
+        self.flag_pause = False
+        self.flag_generate_execute = False
         self.file_processor = None
         self.file_generator = None
         self.selected_file = None
@@ -124,15 +128,39 @@ class main_proyect(customtkinter.CTk):
         self.initial_configurations()
         self.another_init()
         self.mainloop()
+        
+    def dowload_generate_file(self):
+        self.this_file = os.path.dirname(os.path.realpath(__file__))
+        self.file_to_copy = os.path.join(self.this_file, "generated.txt")
+        
+        if self.flag_generate_execute:
+            rute = filedialog.asksaveasfile(
+                title="Seleccione la carpeta y nombre para descargar el archivo de las instrucciones",
+                defaultextension=".txt",
+                filetypes=[("Archivos de texto", "*.txt")]
+            )
+            
+            if rute:
+                shutil.copy(self.file_to_copy, rute.name)
+        else:
+            print("Error de descarga: posiblemente no has ejecutado aun el programa o has ejecutado el programa cargando un documento de tu dispositivo.")
+        
+    def pausar_execute(self):
+        if self.flag_pause:
+            self.flag_pause = False
+        else:
+            self.flag_pause = True
    
     def upload_file(self):
         self.selected_file = askopenfile(mode="r", filetypes=[('Archivos de texto', '*.txt')])
             
     def execute_program(self):
             if self.selected_file is not None:
+                self.flag_generate_execute = False
                 self.file_processor = FileProcessor(self.selected_file.name, self.configure_algorithm_combo.get())
                 self.name_file.set(self.selected_file.name)
             else:
+                self.flag_generate_execute = True
                 seed = None
                 if not self.configure_seed_entry.get():
                     seed = 1000
@@ -159,11 +187,12 @@ class main_proyect(customtkinter.CTk):
             self.execute_instruction()
         
     def execute_instruction(self):
-            if self.file_processor.instruction_list:
-                self.file_processor.process_instruction()
-                self.init_statistics()
+            if not self.flag_pause:
+                if self.file_processor.instruction_list:
+                    self.file_processor.process_instruction()
+                    self.init_statistics()
                 
-            self.after(1000,self.execute_instruction)
+            self.after(2000,self.execute_instruction)
 
     def init_statistics(self):
             self.list_loaded_unloaded = self.file_processor.selected_mmu.get_pages_loaded_and_unloaded()
@@ -214,6 +243,9 @@ class main_proyect(customtkinter.CTk):
             # Frames create
             self.section_configure = customtkinter.CTkFrame(self, width=1300, height=100)
             self.section_configure.pack()
+            
+            self.section_dowload = customtkinter.CTkFrame(self, width=1300, height = 40)
+            self.section_dowload.pack()
             
             self.section_ram_opt = customtkinter.CTkFrame(self, width=1300, height= 25)
             self.section_ram_opt.pack()
@@ -274,6 +306,8 @@ class main_proyect(customtkinter.CTk):
             #Buttons
             self.configure_file_button = customtkinter.CTkButton(self.section_configure, text="Subir Archivo", command= self.upload_file, width = 100)
             self.configure_execute_button = customtkinter.CTkButton(self.section_configure, text="Ejecutar programa", command=self.execute_program)
+            self.dowload_button = customtkinter.CTkButton(self.section_dowload,text="Descargar Archivo de Instrucciones", command=self.dowload_generate_file)
+            self.pause_button = customtkinter.CTkButton(self.section_dowload,text="Pausar", command= self.pausar_execute)
             
             #Place Labels
             self.configure_title.place(x = 5, y = 0)
@@ -295,6 +329,8 @@ class main_proyect(customtkinter.CTk):
             #Place Buttons
             self.configure_file_button.place(x = 970, y = 50)
             self.configure_execute_button.place(x = 1100, y = 50)
+            self.dowload_button.place(x=10,y=0)
+            self.pause_button.place(x=250, y=0)
             
             #Section Ram Widgets
             #Labels

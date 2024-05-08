@@ -294,28 +294,35 @@ class MMUSecondChance():
         table_info = []
         
         for k,v in pointers_map.items():
-            self.pid_pointer = None
+            self.pid_process = None
             self.page_id = None
             self.loaded = None
-            self.l_addr = None
-            m_addr = None
-            loaded_t = None
-            mark = None
+            self.l_addr = k
+            self.m_addr = None
+            self.loaded_t = None
+            self.mark = None
             
             for k1, v1 in processes_map.items():
                 if k in v1:
-                    self.pid_pointer = k1
+                    self.pid_process = k1
             
             for vals in v:
                 self.page_id = vals["id"]
                 self.loaded = vals["in_ram"]
+                self.m_addr = vals["segment"]
+                self.mark = vals["bit"]
                 if self.loaded:
-                    table_info.append([str(self.page_id), str(self.pid_pointer), "X", "-", "-", "-", "-", "NO"])
+                    if self.mark:
+                        table_info.append([str(self.page_id), str(self.pid_process), "X", str(self.l_addr), str(self.m_addr), "-", "-", "X"])
+                    else:
+                        table_info.append([str(self.page_id), str(self.pid_process), "X", str(self.l_addr), str(self.m_addr), "-", "-", ""])
                 else:
-                    table_info.append([str(self.page_id), str(self.pid_pointer), "", "-", "-", "-", "-", ""])
+                    if self.mark:
+                        table_info.append([str(self.page_id), str(self.pid_process), "", str(self.l_addr), str(self.m_addr), "-", "-", "X"])
+                    else:
+                        table_info.append([str(self.page_id), str(self.pid_process), "", str(self.l_addr), str(self.m_addr), "-", "-", ""])
             
                         
-            
         return table_info
     
     def get_color_ram_info(self):

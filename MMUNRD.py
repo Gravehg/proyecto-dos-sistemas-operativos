@@ -223,3 +223,105 @@ class MMURND():
     
     def get_total_time(self):
         return self.clock
+
+    def get_num_process(self):
+        len = 0
+        for proc in self.processes:
+            len += 1
+        return len
+
+    def get_process_map(self):
+        process_map = {}
+        for proc in self.processes:
+            process_id = str(proc.get_process_id())
+            list_pointers = proc.get_pointers_list()
+            process_map[str(process_id)] = list_pointers 
+        
+        return process_map
+    
+    def get_pages_map(self):
+        all_pointers = {}
+        
+        for k,v in self.pointer_page_map.items():
+            pages_list = []
+            
+            for val in v:
+                pages_list.append(val.get_all())
+                
+            all_pointers.setdefault(k,pages_list)
+            
+        return all_pointers
+    
+    def get_table_info(self):
+        processes_map = self.get_process_map()
+        pointers_map = self.get_pages_map()
+        table_info = []
+        
+        for k,v in pointers_map.items():
+            self.pid_process = None
+            self.page_id = None
+            self.loaded = None
+            self.l_addr = k
+            self.m_addr = None
+            self.loaded_t = None
+            self.mark = None
+            
+            for k1, v1 in processes_map.items():
+                if k in v1:
+                    self.pid_process = k1
+            
+            for vals in v:
+                self.page_id = vals["id"]
+                self.loaded = vals["in_ram"]
+                self.m_addr = vals["segment"]
+                if self.loaded:
+                    table_info.append([str(self.page_id), str(self.pid_process), "X", str(self.l_addr), str(self.m_addr), "-", "-", ""])
+                else:
+                    table_info.append([str(self.page_id), str(self.pid_process), "", str(self.l_addr), str(self.m_addr), "-", "-", ""])
+            
+                        
+        return table_info
+    
+    def get_color_ram_info(self):
+        processes_map = self.get_process_map()
+        pointers_map = self.get_pages_map()
+        
+        colors_info = {}
+        
+        for k,v in pointers_map.items():
+            counter = 0
+            self.id_process = None
+            
+            for k1,v1 in processes_map.items():
+                if k in v1:
+                    self.id_process = int(k1)
+            
+            for vals in v:
+                counter += 1
+            
+            process_in_list = False
+            for k2,v1 in colors_info.items():
+                if self.id_process == int(k2):
+                    process_in_list = True
+            
+            if process_in_list:
+                valor = colors_info[self.id_process] + counter
+                colors_info[self.id_process] = valor
+            else:
+                colors_info.setdefault(self.id_process,counter)
+                
+        return colors_info
+    
+    def get_pages_loaded_and_unloaded(self):
+        pointers_map = self.get_pages_map()
+        count_loaded = 0
+        count_unloaded = 0
+        
+        for k, v in pointers_map.items():
+            for val in v:
+                if val["in_ram"] == True:
+                    count_loaded += 1
+                else:
+                    count_unloaded +=1
+                    
+        return [count_loaded,count_unloaded]
