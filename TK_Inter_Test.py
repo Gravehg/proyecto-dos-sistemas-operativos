@@ -26,6 +26,7 @@ class main_proyect(customtkinter.CTk):
         super().__init__()
         self.map_colors = {}
         
+        self.timer_id = False
         self.flag_pause = False
         self.flag_generate_execute = False
         self.file_processor = None
@@ -85,45 +86,8 @@ class main_proyect(customtkinter.CTk):
         self.percentage_thrashing_alg.set("-")
         self.fragmentacion_alg.set("-")
 
-        self.list_MMU_OPT = [['PAGE ID', 'PID', 'LOADED', 'L-ADDR', 'M-ADDR', 'D-ADDR', 'LOADED-T', 'MARK'],
-                ['1','1','X','1','1','-','0s','-', ("yellow", "black")],] 
+        self.list_MMU_OPT = [['PAGE ID', 'PID', 'LOADED', 'L-ADDR', 'M-ADDR', 'D-ADDR', 'LOADED-T', 'MARK']] 
         self.list_MMU_ALG = [['PAGE ID', 'PID', 'LOADED', 'L-ADDR', 'M-ADDR', 'D-ADDR', 'LOADED-T', 'MARK']]
-        #['1','1','X','1','1','-','0s','-', ("yellow", "black")]
-        self.dic_MMU_OPT = {
-            "processes":"5",
-            "sim-time": "250s",
-            "ram-kb": "244",
-            "ram-percentage": "61",
-            "v-ram-kb" : "40",
-            "v-ram-percentage": "4%",
-            "pages": {
-                "loaded": "61",
-                "unloaded": "85"
-            },
-            "thrashing": {
-                "seconds": "150s",
-                "percentage": "60%"
-            },
-            "fragmentacion": "256KB"
-        }
-
-        self.dic_MMU_ALG = {
-            "processes":"5",
-            "sim-time": "250s",
-            "ram-kb": "244",
-            "ram-percentage": "61",
-            "v-ram-kb" : "40",
-            "v-ram-percentage": "4%",
-            "pages": {
-                "loaded": "61",
-                "unloaded": "85"
-            },
-            "thrashing": {
-                "seconds": "150s",
-                "percentage": "60%"
-            },
-            "fragmentacion": "256KB"
-        }
         
         self.initial_configurations()
         self.another_init()
@@ -150,15 +114,81 @@ class main_proyect(customtkinter.CTk):
             self.flag_pause = False
         else:
             self.flag_pause = True
+            
+    def stop_execute(self):
+        if self.timer_id is not None:
+            self.after_cancel(self.timer_id)
+            self.timer_id = None
+            
+            self.destroy_items_tables()
+            self.destroy_ram_charge()
+            
+            self.processes_opt.set("-")
+            self.sim_time_opt.set("-")
+            self.ram_kb_opt.set("-")
+            self.ram_percentage_opt.set("-")
+            self.v_ram_kb_opt.set("-")
+            self.v_ram_percentage_opt.set("-")
+            self.loaded_pages_opt.set("-")
+            self.unloaded_pages_opt.set("-")
+            self.seconds_thrashing_opt.set("-")
+            self.percentage_thrashing_opt.set("-")
+            self.fragmentacion_opt.set("-")
+
+            self.processes_alg.set("-")
+            self.sim_time_alg.set("-")
+            self.ram_kb_alg.set("-")
+            self.ram_percentage_alg.set("-")
+            self.v_ram_kb_alg.set("-")
+            self.v_ram_percentage_alg.set("-")
+            self.loaded_pages_alg.set("-")
+            self.unloaded_pages_alg.set("-")
+            self.seconds_thrashing_alg.set("-")
+            self.percentage_thrashing_alg.set("-")
+            self.fragmentacion_alg.set("-")
+            
+            self.name_algorithm.set("RAM - [ALG]")
+            self.name_mmu.set("MMU - [ALG]")
+            
+            self.list_MMU_OPT = [['PAGE ID', 'PID', 'LOADED', 'L-ADDR', 'M-ADDR', 'D-ADDR', 'LOADED-T', 'MARK']] 
+            self.list_MMU_ALG = [['PAGE ID', 'PID', 'LOADED', 'L-ADDR', 'M-ADDR', 'D-ADDR', 'LOADED-T', 'MARK']]
+            
+            for i in range(100):
+                frame = customtkinter.CTkFrame(self.section_ram_opt_charge,width=13, height=13, corner_radius=0, fg_color="gray")
+                frame.grid(row=1, column= i)
+                
+            self.section_ram_alg_label.grid(row = 3, column = 0, columnspan = 100, sticky="nsew")
+            for i in range(100):
+                frame = customtkinter.CTkFrame(self.section_ram_alg_charge,width=13, height=13, corner_radius=0, fg_color="gray")
+                frame.grid(row=4, column= i)
+                
+            #Frames
+            self.frame_label_opt = customtkinter.CTkFrame(self.section_data_opt_table, fg_color="#363b41", width=100, height=20)
+            self.frame_label_alg = customtkinter.CTkFrame(self.section_data_alg_table, fg_color="#363b41", width=100, height=20)
+            
+            #Labels
+            self.section_data_opt_label = customtkinter.CTkLabel(self.frame_label_opt, text="MMU - OPT", font=("Constantia",15),text_color="white", width=650, height=20)
+            self.section_data_alg_label = customtkinter.CTkLabel(self.frame_label_alg, textvariable=self.name_mmu, font=("Constantia",15),text_color="white", width=650, height=20)
+            
+            #Place
+            self.section_data_opt_label.place(x = 0, y = 0)
+            self.section_data_alg_label.place(x = 0, y = 0)
+            
+            self.frame_label_opt.grid(row = 0, column=0, columnspan=8, sticky="nsew")
+            self.frame_label_alg.grid(row = 0, column=0, columnspan=8, sticky="nsew")
+            
+            
+                
+            
    
     def upload_file(self):
         self.selected_file = askopenfile(mode="r", filetypes=[('Archivos de texto', '*.txt')])
+        self.name_file.set(self.selected_file.name)
             
     def execute_program(self):
             if self.selected_file is not None:
                 self.flag_generate_execute = False
                 self.file_processor = FileProcessor(self.selected_file.name, self.configure_algorithm_combo.get())
-                self.name_file.set(self.selected_file.name)
             else:
                 self.flag_generate_execute = True
                 seed = None
@@ -192,7 +222,9 @@ class main_proyect(customtkinter.CTk):
                     self.file_processor.process_instruction()
                     self.init_statistics()
                 
-            self.after(2000,self.execute_instruction)
+            self.timer_id = self.after(2000,self.execute_instruction)
+            
+            
 
     def init_statistics(self):
             self.list_loaded_unloaded = self.file_processor.selected_mmu.get_pages_loaded_and_unloaded()
@@ -306,8 +338,9 @@ class main_proyect(customtkinter.CTk):
             #Buttons
             self.configure_file_button = customtkinter.CTkButton(self.section_configure, text="Subir Archivo", command= self.upload_file, width = 100)
             self.configure_execute_button = customtkinter.CTkButton(self.section_configure, text="Ejecutar programa", command=self.execute_program)
-            self.dowload_button = customtkinter.CTkButton(self.section_dowload,text="Descargar Archivo de Instrucciones", command=self.dowload_generate_file)
-            self.pause_button = customtkinter.CTkButton(self.section_dowload,text="Pausar", command= self.pausar_execute)
+            self.dowload_button = customtkinter.CTkButton(self.section_dowload, text="Descargar Archivo de Instrucciones", command=self.dowload_generate_file)
+            self.pause_button = customtkinter.CTkButton(self.section_dowload, text="Pausar", command= self.pausar_execute)
+            self.stop_button = customtkinter.CTkButton(self.section_dowload, text="Detener", command= self.stop_execute)
             
             #Place Labels
             self.configure_title.place(x = 5, y = 0)
@@ -331,6 +364,7 @@ class main_proyect(customtkinter.CTk):
             self.configure_execute_button.place(x = 1100, y = 50)
             self.dowload_button.place(x=10,y=0)
             self.pause_button.place(x=250, y=0)
+            self.stop_button.place(x=415, y =0)
             
             #Section Ram Widgets
             #Labels
